@@ -1,17 +1,27 @@
 package com.example.paddlestroke
 
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.Manifest
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,6 +36,17 @@ class MainActivity : AppCompatActivity() {
     private val UPDATE_INTERVAL: Int = 1000
     private var lastUpdate: Long = 0
 
+    private val MIN_TIME: Long = 1000 * 10
+    private val MIN_DISTANCE: Float = 10.0f
+
+    private lateinit var textViewTime: TextView
+    private lateinit var textViewLon: TextView
+    private lateinit var textViewLat: TextView
+    private lateinit var textViewAlt: TextView
+    private lateinit var textViewAcc: TextView
+
+    private lateinit var locationManager: LocationManager
+    private lateinit var myLocationListener: MyLocationListener
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -45,10 +66,19 @@ class MainActivity : AppCompatActivity() {
         if (accelSensor == null) {
             Toast.makeText(this, "Missing TYPE_ACCELEROMETER", Toast.LENGTH_SHORT).show()
         }
+
+        textViewTime = findViewById<View>(R.id.textViewTime) as TextView
+        textViewLon = findViewById<View>(R.id.textViewLng) as TextView
+        textViewLat = findViewById<View>(R.id.textViewLat) as TextView
+        textViewAlt = findViewById<View>(R.id.textViewAlt) as TextView
+        textViewAcc = findViewById<View>(R.id.textViewAcc) as TextView
+
+        myLocationListener = MyLocationListener()
     }
 
     override fun onResume() {
         super.onResume()
+
         if (accelSensor != null) {
             mySensorEventListener = MySensorEventListener()
             sensorManager.registerListener(
@@ -57,9 +87,31 @@ class MainActivity : AppCompatActivity() {
             )
         }
         lastUpdate = System.currentTimeMillis()
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            Toast.makeText(this, "PERMISSION ERROR: ACCESS_FINE_LOCATION", Toast.LENGTH_SHORT).show()
+        } else {
+            locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+            if (null != locationManager.getProvider(LocationManager.GPS_PROVIDER)) {
+                val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                setLocationText(location)
+                locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    MIN_TIME, MIN_DISTANCE, myLocationListener
+                )
+            }
+        }
     }
 
     override fun onPause() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "PERMISSION ERROR: ACCESS_FINE_LOCATION", Toast.LENGTH_SHORT).show()
+        } else {
+            locationManager.removeUpdates(myLocationListener)
+        }
         sensorManager.unregisterListener(mySensorEventListener)
         super.onPause()
     }
@@ -84,5 +136,33 @@ class MainActivity : AppCompatActivity() {
 
         override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
     }
+
+    private fun setLocationText(location: Location?) {
+        if (location != null) {
+            val time: String = SimpleDateFormat(
+                "yyyy/MM/dd HH:mm:ss",
+                Locale.getDefault()
+            ).format(Date(location.time))
+            val lon = location.longitude
+            val lat = location.latitude
+            textViewTime.text = "測定時刻：$time"
+            textViewLon.text = "経度：$lon"
+            textViewLat.text = "緯度：$lat"
+            if (location.hasAccuracy()) {
+                val acc = location.accuracy.toDouble()
+                textViewAcc.text = "精度：$acc"
+            }
+            if (location.hasAltitude()) {
+                val alt = location.altitude
+                textViewAlt.text = "高度：$alt"
+            }
+        }
+    }
+    internal inner class MyLocationListener : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            setLocationText(location)
+        }
+    }
+
 }
 

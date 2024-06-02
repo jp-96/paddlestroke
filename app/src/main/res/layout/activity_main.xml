@@ -21,7 +21,7 @@
         android:id="@+id/textViewLabelX"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="20dp"
         android:layout_marginTop="12dp"
         android:text="X:"
         app:layout_constraintStart_toStartOf="parent"
@@ -32,19 +32,17 @@
         android:layout_width="200dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="12dp"
         android:text="x"
         app:layout_constraintStart_toEndOf="@+id/textViewLabelX"
-        app:layout_constraintTop_toBottomOf="@+id/textView" />
+        app:layout_constraintTop_toTopOf="@+id/textViewLabelX" />
 
     <TextView
         android:id="@+id/textViewLabelY"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
         android:layout_marginTop="12dp"
         android:text="Y:"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/textViewLabelX"
         app:layout_constraintTop_toBottomOf="@+id/textViewLabelX" />
 
     <TextView
@@ -52,19 +50,17 @@
         android:layout_width="200dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="12dp"
         android:text="y"
         app:layout_constraintStart_toEndOf="@+id/textViewLabelY"
-        app:layout_constraintTop_toBottomOf="@+id/textViewX" />
+        app:layout_constraintTop_toTopOf="@+id/textViewLabelY" />
 
     <TextView
         android:id="@+id/textViewLabelZ"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
         android:layout_marginTop="12dp"
         android:text="Z:"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/textViewLabelY"
         app:layout_constraintTop_toBottomOf="@+id/textViewLabelY" />
 
     <TextView
@@ -72,9 +68,94 @@
         android:layout_width="200dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="12dp"
         android:text="z"
         app:layout_constraintStart_toEndOf="@+id/textViewLabelZ"
-        app:layout_constraintTop_toBottomOf="@+id/textViewY" />
+        app:layout_constraintTop_toTopOf="@+id/textViewLabelZ" />
+
+    <TextView
+        android:id="@+id/textViewLabelTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:text="Time:"
+        app:layout_constraintStart_toStartOf="@+id/textViewLabelZ"
+        app:layout_constraintTop_toBottomOf="@+id/textViewLabelZ" />
+
+    <TextView
+        android:id="@+id/textViewTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:text="time"
+        app:layout_constraintStart_toEndOf="@+id/textViewLabelTime"
+        app:layout_constraintTop_toTopOf="@+id/textViewLabelTime" />
+
+    <TextView
+        android:id="@+id/textViewLabelLng"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Lng:"
+        app:layout_constraintStart_toStartOf="@+id/textViewLabelTime"
+        app:layout_constraintTop_toBottomOf="@+id/textViewLabelTime" />
+
+    <TextView
+        android:id="@+id/textViewLng"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="lng"
+        app:layout_constraintStart_toStartOf="@+id/textViewTime"
+        app:layout_constraintTop_toTopOf="@+id/textViewLabelLng" />
+
+    <TextView
+        android:id="@+id/textViewLabelLat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Lat:"
+        app:layout_constraintStart_toStartOf="@+id/textViewLabelLng"
+        app:layout_constraintTop_toBottomOf="@+id/textViewLabelLng" />
+
+    <TextView
+        android:id="@+id/textViewLat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="lat"
+        app:layout_constraintStart_toStartOf="@+id/textViewLng"
+        app:layout_constraintTop_toTopOf="@+id/textViewLabelLat" />
+
+    <TextView
+        android:id="@+id/textViewLabelAlt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Alt:"
+        app:layout_constraintStart_toStartOf="@+id/textViewLabelLat"
+        app:layout_constraintTop_toBottomOf="@+id/textViewLabelLat" />
+
+    <TextView
+        android:id="@+id/textViewAlt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="alt"
+        app:layout_constraintStart_toStartOf="@+id/textViewLat"
+        app:layout_constraintTop_toTopOf="@+id/textViewLabelAlt" />
+
+    <TextView
+        android:id="@+id/textViewLabelAcc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Acc:"
+        app:layout_constraintStart_toStartOf="@+id/textViewLabelAlt"
+        app:layout_constraintTop_toBottomOf="@+id/textViewLabelAlt" />
+
+    <TextView
+        android:id="@+id/textViewAcc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="acc"
+        app:layout_constraintStart_toStartOf="@+id/textViewAlt"
+        app:layout_constraintTop_toTopOf="@+id/textViewLabelAcc" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
