@@ -1,5 +1,6 @@
 package com.example.paddlestroke
 
+import android.Manifest
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -8,7 +9,6 @@ import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.Manifest
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -18,10 +18,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileWriter
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-
+import java.util.StringJoiner
 
 class MainActivity : AppCompatActivity() {
 
@@ -47,6 +51,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var locationManager: LocationManager
     private lateinit var myLocationListener: MyLocationListener
+
+    private lateinit var bufferedWriter: BufferedWriter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -61,6 +68,13 @@ class MainActivity : AppCompatActivity() {
         textViewY = findViewById<View>(R.id.textViewY) as TextView
         textViewZ = findViewById<View>(R.id.textViewZ) as TextView
 
+
+        val currentTime: Calendar = Calendar.getInstance()
+        val formatter = SimpleDateFormat("yyyyMMddhhmmss")
+        val filename: String = "datalog_" + formatter.format(currentTime.getTime()) + ".csv"
+        val file = File(getExternalFilesDir("logs"), filename)
+        bufferedWriter = BufferedWriter(FileWriter(file))
+
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
         accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         if (accelSensor == null) {
@@ -74,6 +88,7 @@ class MainActivity : AppCompatActivity() {
         textViewAcc = findViewById<View>(R.id.textViewAcc) as TextView
 
         myLocationListener = MyLocationListener()
+
     }
 
     override fun onResume() {
@@ -113,13 +128,37 @@ class MainActivity : AppCompatActivity() {
             locationManager.removeUpdates(myLocationListener)
         }
         sensorManager.unregisterListener(mySensorEventListener)
+
+        synchronized(this) {
+            val writer = bufferedWriter
+            writer.flush()
+        }
         super.onPause()
+    }
+
+    fun addRecord(timestamp: Long, tag: String, numValues: Int, values: FloatArray) {
+        // record timestamp, and values in text file
+        val stringJoiner = StringJoiner(",") //StringBuilder()
+        stringJoiner.add("$timestamp")
+        stringJoiner.add(tag)
+        for (i in 0 until numValues) {
+            stringJoiner.add(String.format(Locale.US, "%.6f", values[i]))
+        }
+        synchronized(this) {
+            val writer = bufferedWriter
+            writer.write(stringJoiner.toString())
+            writer.newLine()
+        }
     }
 
     internal inner class MySensorEventListener : SensorEventListener {
         override fun onSensorChanged(sensorEvent: SensorEvent) {
             if (sensorEvent.sensor.type == Sensor.TYPE_ACCELEROMETER) {
+                val timestamp = sensorEvent.timestamp
+                addRecord(timestamp, "acce",3, sensorEvent.values)
+
                 val actualTime = System.currentTimeMillis()
+
                 if (actualTime - lastUpdate > UPDATE_INTERVAL) {
                     lastUpdate = actualTime
 
