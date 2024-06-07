@@ -18,6 +18,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.example.paddlestroke.sensor.AndroidLocationClient
+import com.example.paddlestroke.sensor.LocationClient
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.forEach
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -49,8 +60,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textViewAlt: TextView
     private lateinit var textViewAcc: TextView
 
-    private lateinit var locationManager: LocationManager
-    private lateinit var myLocationListener: MyLocationListener
+//    private lateinit var locationManager: LocationManager
+//    private lateinit var myLocationListener: MyLocationListener
+    private lateinit var locationClient: LocationClient
 
     private lateinit var bufferedWriter: BufferedWriter
 
@@ -87,7 +99,18 @@ class MainActivity : AppCompatActivity() {
         textViewAlt = findViewById<View>(R.id.textViewAlt) as TextView
         textViewAcc = findViewById<View>(R.id.textViewAcc) as TextView
 
-        myLocationListener = MyLocationListener()
+        //myLocationListener = MyLocationListener()
+        locationClient = AndroidLocationClient(
+            applicationContext,
+            LocationServices.getFusedLocationProviderClient(applicationContext)
+        )
+        locationClient
+            .getLocationUpdates(1000L)
+            .catch { e -> e.printStackTrace() }
+            .onEach { location ->
+                setLocationText(location)
+            }
+            .launchIn(CoroutineScope(Dispatchers.Main))
 
     }
 
@@ -108,15 +131,15 @@ class MainActivity : AppCompatActivity() {
         ) {
             Toast.makeText(this, "PERMISSION ERROR: ACCESS_FINE_LOCATION", Toast.LENGTH_SHORT).show()
         } else {
-            locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-            if (null != locationManager.getProvider(LocationManager.GPS_PROVIDER)) {
-                val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                setLocationText(location)
-                locationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    MIN_TIME, MIN_DISTANCE, myLocationListener
-                )
-            }
+//            locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+//            if (null != locationManager.getProvider(LocationManager.GPS_PROVIDER)) {
+//                val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+//                setLocationText(location)
+//                locationManager.requestLocationUpdates(
+//                    LocationManager.GPS_PROVIDER,
+//                    MIN_TIME, MIN_DISTANCE, myLocationListener
+//                )
+//            }
         }
     }
 
@@ -125,7 +148,7 @@ class MainActivity : AppCompatActivity() {
             != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "PERMISSION ERROR: ACCESS_FINE_LOCATION", Toast.LENGTH_SHORT).show()
         } else {
-            locationManager.removeUpdates(myLocationListener)
+//            locationManager.removeUpdates(myLocationListener)
         }
         sensorManager.unregisterListener(mySensorEventListener)
 
@@ -197,11 +220,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    internal inner class MyLocationListener : LocationListener {
-        override fun onLocationChanged(location: Location) {
-            setLocationText(location)
-        }
-    }
+//    internal inner class MyLocationListener : LocationListener {
+//        override fun onLocationChanged(location: Location) {
+//            setLocationText(location)
+//        }
+//    }
 
 }
 

@@ -45,4 +45,9 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Location Services
+    // implementation('com.google.android.gms:play-services-location:20.0.0')
+    implementation(libs.gms.location)
+
 }
