@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.paddlestroke"
         minSdk = 27
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.0.3"
+        versionCode = 5
+        versionName = "0.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -45,4 +45,9 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Location Services
+    // implementation('com.google.android.gms:play-services-location:20.0.0')
+    implementation(libs.gms.location)
+
 }

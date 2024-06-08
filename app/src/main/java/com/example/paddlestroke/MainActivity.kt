@@ -1,5 +1,6 @@
 package com.example.paddlestroke
 
+import android.Manifest
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -8,7 +9,6 @@ import android.hardware.SensorManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.Manifest
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -18,16 +18,32 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.example.paddlestroke.sensor.AccerometerClient
+import com.example.paddlestroke.sensor.AndroidLocationClient
+import com.example.paddlestroke.sensor.LocationClient
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.forEach
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileWriter
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-
+import java.util.StringJoiner
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var sensorManager: SensorManager
-    private var accelSensor: Sensor? = null
-    private lateinit var mySensorEventListener: MySensorEventListener
+//    private lateinit var sensorManager: SensorManager
+//    private var accelSensor: Sensor? = null
+//    private lateinit var mySensorEventListener: MySensorEventListener
 
     private lateinit var textViewX: TextView
     private lateinit var textViewY: TextView
@@ -45,8 +61,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textViewAlt: TextView
     private lateinit var textViewAcc: TextView
 
-    private lateinit var locationManager: LocationManager
-    private lateinit var myLocationListener: MyLocationListener
+    private lateinit var accerometerClient: AccerometerClient
+
+//    private lateinit var locationManager: LocationManager
+//    private lateinit var myLocationListener: MyLocationListener
+    private lateinit var locationClient: LocationClient
+
+    private lateinit var bufferedWriter: BufferedWriter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -61,82 +83,85 @@ class MainActivity : AppCompatActivity() {
         textViewY = findViewById<View>(R.id.textViewY) as TextView
         textViewZ = findViewById<View>(R.id.textViewZ) as TextView
 
-        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-        accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        if (accelSensor == null) {
-            Toast.makeText(this, "Missing TYPE_ACCELEROMETER", Toast.LENGTH_SHORT).show()
-        }
-
         textViewTime = findViewById<View>(R.id.textViewTime) as TextView
         textViewLon = findViewById<View>(R.id.textViewLng) as TextView
         textViewLat = findViewById<View>(R.id.textViewLat) as TextView
         textViewAlt = findViewById<View>(R.id.textViewAlt) as TextView
         textViewAcc = findViewById<View>(R.id.textViewAcc) as TextView
 
-        myLocationListener = MyLocationListener()
-    }
-
-    override fun onResume() {
-        super.onResume()
-
-        if (accelSensor != null) {
-            mySensorEventListener = MySensorEventListener()
-            sensorManager.registerListener(
-                mySensorEventListener,
-                accelSensor, SensorManager.SENSOR_DELAY_UI
-            )
-        }
         lastUpdate = System.currentTimeMillis()
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            Toast.makeText(this, "PERMISSION ERROR: ACCESS_FINE_LOCATION", Toast.LENGTH_SHORT).show()
-        } else {
-            locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-            if (null != locationManager.getProvider(LocationManager.GPS_PROVIDER)) {
-                val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+        val currentTime: Calendar = Calendar.getInstance()
+        val formatter = SimpleDateFormat("yyyyMMddhhmmss")
+        val filename: String = "datalog_" + formatter.format(currentTime.getTime()) + ".csv"
+        val file = File(getExternalFilesDir("logs"), filename)
+        bufferedWriter = BufferedWriter(FileWriter(file))
+
+        accerometerClient = AccerometerClient(applicationContext)
+        accerometerClient
+            .getSensorUpdates(SensorManager.SENSOR_DELAY_UI)
+            .catch { e -> e.printStackTrace() }
+            .onEach { sensorEvent ->
+                setAccerometerText(sensorEvent)
+            }
+            .launchIn(CoroutineScope(Dispatchers.Main))
+
+        accerometerClient
+            .sensorUpdate
+            .catch { e -> e.printStackTrace() }
+            .onEach { sensorEvent ->
+                val timestamp = sensorEvent.timestamp
+                addRecord(timestamp, "acce",3, sensorEvent.values)
+            }
+            .launchIn(CoroutineScope(Dispatchers.Main))
+
+        //myLocationListener = MyLocationListener()
+        locationClient = AndroidLocationClient(
+            applicationContext,
+            LocationServices.getFusedLocationProviderClient(applicationContext)
+        )
+        locationClient
+            .getLocationUpdates(1000L)
+            .catch { e -> e.printStackTrace() }
+            .onEach { location ->
                 setLocationText(location)
-                locationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    MIN_TIME, MIN_DISTANCE, myLocationListener
-                )
             }
+            .launchIn(CoroutineScope(Dispatchers.Main))
+
+    }
+
+    fun addRecord(timestamp: Long, tag: String, numValues: Int, values: FloatArray) {
+        // record timestamp, and values in text file
+        val stringJoiner = StringJoiner(",") //StringBuilder()
+        stringJoiner.add("$timestamp")
+        stringJoiner.add(tag)
+        for (i in 0 until numValues) {
+            stringJoiner.add(String.format(Locale.US, "%.6f", values[i]))
+        }
+        synchronized(this) {
+            val writer = bufferedWriter
+            writer.write(stringJoiner.toString())
+            writer.newLine()
+            writer.flush()
         }
     }
 
-    override fun onPause() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "PERMISSION ERROR: ACCESS_FINE_LOCATION", Toast.LENGTH_SHORT).show()
-        } else {
-            locationManager.removeUpdates(myLocationListener)
+    private fun setAccerometerText(sensorEvent: SensorEvent){
+
+        val actualTime = System.currentTimeMillis()
+
+        if (actualTime - lastUpdate > UPDATE_INTERVAL) {
+            lastUpdate = actualTime
+
+            val x = sensorEvent.values[0]
+            val y = sensorEvent.values[1]
+            val z = sensorEvent.values[2]
+
+            textViewX.text = x.toString()
+            textViewY.text = y.toString()
+            textViewZ.text = z.toString()
         }
-        sensorManager.unregisterListener(mySensorEventListener)
-        super.onPause()
     }
-
-    internal inner class MySensorEventListener : SensorEventListener {
-        override fun onSensorChanged(sensorEvent: SensorEvent) {
-            if (sensorEvent.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-                val actualTime = System.currentTimeMillis()
-                if (actualTime - lastUpdate > UPDATE_INTERVAL) {
-                    lastUpdate = actualTime
-
-                    val x = sensorEvent.values[0]
-                    val y = sensorEvent.values[1]
-                    val z = sensorEvent.values[2]
-
-                    textViewX.text = x.toString()
-                    textViewY.text = y.toString()
-                    textViewZ.text = z.toString()
-                }
-            }
-        }
-
-        override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
-    }
-
     private fun setLocationText(location: Location?) {
         if (location != null) {
             val time: String = SimpleDateFormat(
@@ -158,11 +183,5 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    internal inner class MyLocationListener : LocationListener {
-        override fun onLocationChanged(location: Location) {
-            setLocationText(location)
-        }
-    }
-
 }
 
