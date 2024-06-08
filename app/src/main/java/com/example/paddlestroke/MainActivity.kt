@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.example.paddlestroke.sensor.AccerometerClient
 import com.example.paddlestroke.sensor.AndroidLocationClient
 import com.example.paddlestroke.sensor.LocationClient
 import com.google.android.gms.location.LocationServices
@@ -40,9 +41,9 @@ import java.util.StringJoiner
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var sensorManager: SensorManager
-    private var accelSensor: Sensor? = null
-    private lateinit var mySensorEventListener: MySensorEventListener
+//    private lateinit var sensorManager: SensorManager
+//    private var accelSensor: Sensor? = null
+//    private lateinit var mySensorEventListener: MySensorEventListener
 
     private lateinit var textViewX: TextView
     private lateinit var textViewY: TextView
@@ -59,6 +60,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textViewLat: TextView
     private lateinit var textViewAlt: TextView
     private lateinit var textViewAcc: TextView
+
+    private lateinit var accerometerClient: AccerometerClient
 
 //    private lateinit var locationManager: LocationManager
 //    private lateinit var myLocationListener: MyLocationListener
@@ -80,6 +83,13 @@ class MainActivity : AppCompatActivity() {
         textViewY = findViewById<View>(R.id.textViewY) as TextView
         textViewZ = findViewById<View>(R.id.textViewZ) as TextView
 
+        textViewTime = findViewById<View>(R.id.textViewTime) as TextView
+        textViewLon = findViewById<View>(R.id.textViewLng) as TextView
+        textViewLat = findViewById<View>(R.id.textViewLat) as TextView
+        textViewAlt = findViewById<View>(R.id.textViewAlt) as TextView
+        textViewAcc = findViewById<View>(R.id.textViewAcc) as TextView
+
+        lastUpdate = System.currentTimeMillis()
 
         val currentTime: Calendar = Calendar.getInstance()
         val formatter = SimpleDateFormat("yyyyMMddhhmmss")
@@ -87,17 +97,23 @@ class MainActivity : AppCompatActivity() {
         val file = File(getExternalFilesDir("logs"), filename)
         bufferedWriter = BufferedWriter(FileWriter(file))
 
-        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-        accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        if (accelSensor == null) {
-            Toast.makeText(this, "Missing TYPE_ACCELEROMETER", Toast.LENGTH_SHORT).show()
-        }
+        accerometerClient = AccerometerClient(applicationContext)
+        accerometerClient
+            .getSensorUpdates(SensorManager.SENSOR_DELAY_UI)
+            .catch { e -> e.printStackTrace() }
+            .onEach { sensorEvent ->
+                setAccerometerText(sensorEvent)
+            }
+            .launchIn(CoroutineScope(Dispatchers.Main))
 
-        textViewTime = findViewById<View>(R.id.textViewTime) as TextView
-        textViewLon = findViewById<View>(R.id.textViewLng) as TextView
-        textViewLat = findViewById<View>(R.id.textViewLat) as TextView
-        textViewAlt = findViewById<View>(R.id.textViewAlt) as TextView
-        textViewAcc = findViewById<View>(R.id.textViewAcc) as TextView
+        accerometerClient
+            .sensorUpdate
+            .catch { e -> e.printStackTrace() }
+            .onEach { sensorEvent ->
+                val timestamp = sensorEvent.timestamp
+                addRecord(timestamp, "acce",3, sensorEvent.values)
+            }
+            .launchIn(CoroutineScope(Dispatchers.Main))
 
         //myLocationListener = MyLocationListener()
         locationClient = AndroidLocationClient(
@@ -114,51 +130,6 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    override fun onResume() {
-        super.onResume()
-
-        if (accelSensor != null) {
-            mySensorEventListener = MySensorEventListener()
-            sensorManager.registerListener(
-                mySensorEventListener,
-                accelSensor, SensorManager.SENSOR_DELAY_UI
-            )
-        }
-        lastUpdate = System.currentTimeMillis()
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            Toast.makeText(this, "PERMISSION ERROR: ACCESS_FINE_LOCATION", Toast.LENGTH_SHORT).show()
-        } else {
-//            locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-//            if (null != locationManager.getProvider(LocationManager.GPS_PROVIDER)) {
-//                val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-//                setLocationText(location)
-//                locationManager.requestLocationUpdates(
-//                    LocationManager.GPS_PROVIDER,
-//                    MIN_TIME, MIN_DISTANCE, myLocationListener
-//                )
-//            }
-        }
-    }
-
-    override fun onPause() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "PERMISSION ERROR: ACCESS_FINE_LOCATION", Toast.LENGTH_SHORT).show()
-        } else {
-//            locationManager.removeUpdates(myLocationListener)
-        }
-        sensorManager.unregisterListener(mySensorEventListener)
-
-        synchronized(this) {
-            val writer = bufferedWriter
-            writer.flush()
-        }
-        super.onPause()
-    }
-
     fun addRecord(timestamp: Long, tag: String, numValues: Int, values: FloatArray) {
         // record timestamp, and values in text file
         val stringJoiner = StringJoiner(",") //StringBuilder()
@@ -171,34 +142,26 @@ class MainActivity : AppCompatActivity() {
             val writer = bufferedWriter
             writer.write(stringJoiner.toString())
             writer.newLine()
+            writer.flush()
         }
     }
 
-    internal inner class MySensorEventListener : SensorEventListener {
-        override fun onSensorChanged(sensorEvent: SensorEvent) {
-            if (sensorEvent.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-                val timestamp = sensorEvent.timestamp
-                addRecord(timestamp, "acce",3, sensorEvent.values)
+    private fun setAccerometerText(sensorEvent: SensorEvent){
 
-                val actualTime = System.currentTimeMillis()
+        val actualTime = System.currentTimeMillis()
 
-                if (actualTime - lastUpdate > UPDATE_INTERVAL) {
-                    lastUpdate = actualTime
+        if (actualTime - lastUpdate > UPDATE_INTERVAL) {
+            lastUpdate = actualTime
 
-                    val x = sensorEvent.values[0]
-                    val y = sensorEvent.values[1]
-                    val z = sensorEvent.values[2]
+            val x = sensorEvent.values[0]
+            val y = sensorEvent.values[1]
+            val z = sensorEvent.values[2]
 
-                    textViewX.text = x.toString()
-                    textViewY.text = y.toString()
-                    textViewZ.text = z.toString()
-                }
-            }
+            textViewX.text = x.toString()
+            textViewY.text = y.toString()
+            textViewZ.text = z.toString()
         }
-
-        override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
     }
-
     private fun setLocationText(location: Location?) {
         if (location != null) {
             val time: String = SimpleDateFormat(
@@ -220,11 +183,5 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-//    internal inner class MyLocationListener : LocationListener {
-//        override fun onLocationChanged(location: Location) {
-//            setLocationText(location)
-//        }
-//    }
-
 }
 
