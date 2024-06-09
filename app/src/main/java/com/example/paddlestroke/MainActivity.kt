@@ -1,35 +1,30 @@
 package com.example.paddlestroke
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.hardware.Sensor
 import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.paddlestroke.sensor.AccerometerClient
+import androidx.lifecycle.lifecycleScope
+import com.example.paddlestroke.sensor.AccelerometerClient
 import com.example.paddlestroke.sensor.AndroidLocationClient
 import com.example.paddlestroke.sensor.LocationClient
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -61,13 +56,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textViewAlt: TextView
     private lateinit var textViewAcc: TextView
 
-    private lateinit var accerometerClient: AccerometerClient
+    private lateinit var accelerometerFlow: Flow<SensorEvent>
+    private var accelerometerJob: Job? = null
 
-//    private lateinit var locationManager: LocationManager
-//    private lateinit var myLocationListener: MyLocationListener
-    private lateinit var locationClient: LocationClient
+    private lateinit var locationFlow: Flow<Location>
+    private var locationJob: Job? = null
 
-    private lateinit var bufferedWriter: BufferedWriter
+    private var bufferedWriter: BufferedWriter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,7 +73,7 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        
+
         textViewX = findViewById<View>(R.id.textViewX) as TextView
         textViewY = findViewById<View>(R.id.textViewY) as TextView
         textViewZ = findViewById<View>(R.id.textViewZ) as TextView
@@ -89,6 +84,31 @@ class MainActivity : AppCompatActivity() {
         textViewAlt = findViewById<View>(R.id.textViewAlt) as TextView
         textViewAcc = findViewById<View>(R.id.textViewAcc) as TextView
 
+        //val accelerometerClient = AccelerometerClient(applicationContext)
+        val accelerometerClient = AccelerometerClient(this)
+        accelerometerFlow = accelerometerClient
+            .getSensorUpdates(SensorManager.SENSOR_DELAY_UI)
+            //.catch { e -> e.printStackTrace() }
+            .onEach { sensorEvent ->
+                val timestamp = sensorEvent.timestamp
+                addRecord(timestamp, "acce", 3, sensorEvent.values)
+                setAccerometerText(sensorEvent)
+            }
+
+        //val locationClient = AndroidLocationClient(applicationContext)
+        val locationClient = AndroidLocationClient(this)
+        locationFlow = locationClient
+            .getLocationUpdates(1000L)
+            .catch { e -> e.printStackTrace() }
+            .onEach { location ->
+                setLocationText(location)
+            }
+
+    }
+
+    override fun onResume() {
+        super.onResume()
+
         lastUpdate = System.currentTimeMillis()
 
         val currentTime: Calendar = Calendar.getInstance()
@@ -97,37 +117,29 @@ class MainActivity : AppCompatActivity() {
         val file = File(getExternalFilesDir("logs"), filename)
         bufferedWriter = BufferedWriter(FileWriter(file))
 
-        accerometerClient = AccerometerClient(applicationContext)
-        accerometerClient
-            .getSensorUpdates(SensorManager.SENSOR_DELAY_UI)
-            .catch { e -> e.printStackTrace() }
-            .onEach { sensorEvent ->
-                setAccerometerText(sensorEvent)
-            }
-            .launchIn(CoroutineScope(Dispatchers.Main))
+        //accelerometerJob = accelerometerFlow.launchIn(CoroutineScope(Dispatchers.Default))
+        accelerometerJob = accelerometerFlow.launchIn(lifecycleScope)
+        //locationJob = locationFlow.launchIn(CoroutineScope(Dispatchers.IO))
+        locationJob = locationFlow.launchIn(lifecycleScope)
 
-        accerometerClient
-            .sensorUpdate
-            .catch { e -> e.printStackTrace() }
-            .onEach { sensorEvent ->
-                val timestamp = sensorEvent.timestamp
-                addRecord(timestamp, "acce",3, sensorEvent.values)
-            }
-            .launchIn(CoroutineScope(Dispatchers.Main))
+    }
 
-        //myLocationListener = MyLocationListener()
-        locationClient = AndroidLocationClient(
-            applicationContext,
-            LocationServices.getFusedLocationProviderClient(applicationContext)
-        )
-        locationClient
-            .getLocationUpdates(1000L)
-            .catch { e -> e.printStackTrace() }
-            .onEach { location ->
-                setLocationText(location)
-            }
-            .launchIn(CoroutineScope(Dispatchers.Main))
+    override fun onPause() {
 
+        runBlocking {
+            accelerometerJob?.cancelAndJoin()
+            locationJob?.cancelAndJoin()
+        }
+        accelerometerJob = null
+        locationJob = null
+
+        synchronized(this) {
+            bufferedWriter?.write("onPause()")
+            bufferedWriter?.newLine()
+            bufferedWriter?.flush()
+            bufferedWriter?.close()
+        }
+        super.onPause()
     }
 
     fun addRecord(timestamp: Long, tag: String, numValues: Int, values: FloatArray) {
@@ -140,13 +152,13 @@ class MainActivity : AppCompatActivity() {
         }
         synchronized(this) {
             val writer = bufferedWriter
-            writer.write(stringJoiner.toString())
-            writer.newLine()
-            writer.flush()
+            writer?.write(stringJoiner.toString())
+            writer?.newLine()
+            writer?.flush()
         }
     }
 
-    private fun setAccerometerText(sensorEvent: SensorEvent){
+    private fun setAccerometerText(sensorEvent: SensorEvent) {
 
         val actualTime = System.currentTimeMillis()
 
@@ -162,6 +174,7 @@ class MainActivity : AppCompatActivity() {
             textViewZ.text = z.toString()
         }
     }
+
     private fun setLocationText(location: Location?) {
         if (location != null) {
             val time: String = SimpleDateFormat(

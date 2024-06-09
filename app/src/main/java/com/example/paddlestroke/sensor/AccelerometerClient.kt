@@ -3,9 +3,9 @@ package com.example.paddlestroke.sensor
 import android.content.Context
 import android.hardware.Sensor
 
-class AccerometerClient(
+class AccelerometerClient(
     context: Context
-): AndroidSensorClient(
+) : AndroidSensorClient(
     context = context,
     sensorType = Sensor.TYPE_ACCELEROMETER
 )

@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 open class AndroidSensorClient(
     private val context: Context,
     private val sensorType: Int
-): SensorClient {
+) : SensorClient {
 
     lateinit var sensorUpdate: Flow<SensorEvent>
 
@@ -22,10 +22,11 @@ open class AndroidSensorClient(
         sensorUpdate = callbackFlow {
             val listener = object : SensorEventListener {
                 override fun onSensorChanged(event: SensorEvent?) {
-                    if(event?.sensor?.type == sensorType) {
+                    if (event?.sensor?.type == sensorType) {
                         launch { send(event) }
                     }
                 }
+
                 override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
             }
 
