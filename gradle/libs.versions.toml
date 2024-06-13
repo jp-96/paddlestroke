@@ -10,6 +10,8 @@ material = "1.12.0"
 activity = "1.8.0"
 constraintlayout = "2.1.4"
 location = "21.3.0"
+blessed = "0.4.1"
+timber="5.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -23,6 +25,12 @@ androidx-constraintlayout = { group = "androidx.constraintlayout", name = "const
 
 # services
 gms-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "location" }
+
+# https://jitpack.io/#weliem/blessed-android-coroutines
+blessed-android-coroutines = { group = "com.github.weliem", name = "blessed-android-coroutines", version.ref = "blessed" }
+
+# implementation 'com.jakewharton.timber:timber:5.0.1'
+timber = {group="com.jakewharton.timber", name ="timber", version.ref="timber"}
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

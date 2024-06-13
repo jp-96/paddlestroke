@@ -50,4 +50,8 @@ dependencies {
     // implementation('com.google.android.gms:play-services-location:20.0.0')
     implementation(libs.gms.location)
 
+    // https://jitpack.io/#weliem/blessed-android-coroutines
+    implementation(libs.blessed.android.coroutines)
+
+    implementation(libs.timber)
 }
