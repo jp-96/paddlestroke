@@ -21,11 +21,11 @@ import com.example.paddlestroke.ble.HeartRateMeasurement
 import com.example.paddlestroke.sensor.AndroidHeartRateClient
 import com.example.paddlestroke.sensor.AndroidLocationClient
 import com.example.paddlestroke.sensor.AndroidSensorClient
-import com.example.paddlestroke.sensor.HeartRateClient
 import com.example.paddlestroke.sensor.LocationClient
 import com.example.paddlestroke.sensor.SensorClient
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -47,14 +47,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textViewY: TextView
     private lateinit var textViewZ: TextView
 
-    private val UPDATE_INTERVAL_MS: Long = 1000L
-    private var lastUpdate: Long = 0L
-
     private lateinit var textViewTime: TextView
     private lateinit var textViewLon: TextView
     private lateinit var textViewLat: TextView
     private lateinit var textViewAlt: TextView
     private lateinit var textViewAcc: TextView
+
+    private lateinit var textViewBle: TextView
+
+    private var bufferedWriter: BufferedWriter? = null
+
+    private val UPDATE_INTERVAL_MS: Long = 1000L
+    private var lastUpdate: Long = 0L
 
     private lateinit var accelerometerClient: SensorClient
     private var accelerometerJob: Job? = null
@@ -62,9 +66,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var locationClient: LocationClient
     private var locationJob: Job? = null
 
-    private var bufferedWriter: BufferedWriter? = null
-
-    private lateinit var textViewBle: TextView
     private var heartRateJob: Job? = null
 
     private val bluetoothManager by lazy {
@@ -84,14 +85,30 @@ class MainActivity : AppCompatActivity() {
             if (it.resultCode == RESULT_OK) {
                 // Bluetooth has been enabled
                 //checkPermissions()
+                startHeartRateJob()
             } else {
                 // Bluetooth has not been enabled, try again
                 askToEnableBluetooth()
             }
         }
+
     private fun askToEnableBluetooth() {
         val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
         enableBluetoothRequest.launch(enableBtIntent)
+    }
+
+    private fun startHeartRateJob() {
+        if (heartRateJob == null) {
+            // HeartRate
+            val bleProvider = BluetoothProvider(this)
+            val heartRateClient = AndroidHeartRateClient(this, bleProvider)
+            // Job: HeartRate
+            heartRateJob = heartRateClient.getHeartRateFlow()
+                .catch { e -> e.printStackTrace() }
+                .onEach { heartRateMeasurement ->
+                    setHeartRateMeasurement(heartRateMeasurement)
+                }.launchIn(MainScope())
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -153,27 +170,18 @@ class MainActivity : AppCompatActivity() {
                 setAccelerometerText(sensorEvent)
             }.launchIn(lifecycleScope)
 
+        // ble: HeartRate
         if (bluetoothManager.adapter != null) {
             if (!isBluetoothEnabled) {
                 askToEnableBluetooth()
             } else {
                 //checkPermissions()
-
-                // HeartRate
-                val bleProvider = BluetoothProvider(this)
-                val heartRateClient = AndroidHeartRateClient(this, bleProvider)
-
-                // Job: HeartRate
-                heartRateJob = heartRateClient.getHeartRateFlow()
-                    .catch { e -> e.printStackTrace() }
-                    .onEach { heartRateMeasurement ->
-                        setHeartRateMeasurement(heartRateMeasurement)
-                    }.launchIn(lifecycleScope)
-
+                startHeartRateJob()
             }
         } else {
             Timber.e("This device has no Bluetooth hardware")
         }
+
     }
 
     override fun onPause() {
@@ -181,11 +189,11 @@ class MainActivity : AppCompatActivity() {
         runBlocking {
             accelerometerJob?.cancelAndJoin()
             locationJob?.cancelAndJoin()
-            heartRateJob?.cancelAndJoin()
+            //heartRateJob?.cancelAndJoin()
         }
         accelerometerJob = null
         locationJob = null
-        heartRateJob = null
+        //heartRateJob = null
 
         synchronized(this) {
             bufferedWriter?.write("onPause()")
