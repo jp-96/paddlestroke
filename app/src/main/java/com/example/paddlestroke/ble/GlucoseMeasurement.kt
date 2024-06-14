@@ -1,12 +1,12 @@
-package com.welie.blessedexample
+package com.example.paddlestroke.ble
 
 import com.welie.blessed.BluetoothBytesParser
 import com.welie.blessed.BluetoothBytesParser.Companion.FORMAT_SFLOAT
 import com.welie.blessed.BluetoothBytesParser.Companion.FORMAT_SINT16
 import com.welie.blessed.BluetoothBytesParser.Companion.FORMAT_UINT16
 import com.welie.blessed.BluetoothBytesParser.Companion.FORMAT_UINT8
-import com.welie.blessedexample.ObservationUnit.MiligramPerDeciliter
-import com.welie.blessedexample.ObservationUnit.MmolPerLiter
+import com.example.paddlestroke.ble.ObservationUnit.MiligramPerDeciliter
+import com.example.paddlestroke.ble.ObservationUnit.MmolPerLiter
 import java.util.*
 
 data class GlucoseMeasurement(

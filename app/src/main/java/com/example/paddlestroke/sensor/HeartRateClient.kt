@@ -1,6 +1,6 @@
 package com.example.paddlestroke.sensor
 
-import com.welie.blessedexample.HeartRateMeasurement
+import com.example.paddlestroke.ble.HeartRateMeasurement
 import kotlinx.coroutines.flow.Flow
 
 interface HeartRateClient {

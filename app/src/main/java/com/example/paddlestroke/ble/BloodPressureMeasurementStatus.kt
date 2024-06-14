@@ -1,4 +1,4 @@
-package com.welie.blessedexample
+package com.example.paddlestroke.ble
 
 class BloodPressureMeasurementStatus internal constructor(measurementStatus: Int) {
     /**

@@ -2,7 +2,7 @@ package com.example.paddlestroke.sensor
 
 import android.content.Context
 import com.example.paddlestroke.ble.BluetoothProvider
-import com.welie.blessedexample.HeartRateMeasurement
+import com.example.paddlestroke.ble.HeartRateMeasurement
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
 

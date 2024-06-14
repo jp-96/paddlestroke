@@ -1,4 +1,4 @@
-package com.welie.blessedexample
+package com.example.paddlestroke.ble
 
 enum class TemperatureType(val value: Int) {
     Unknown(0), Armpit(1), Body(2), Ear(3), Finger(4), GastroIntestinalTract(5), Mouth(6), Rectum(7), Toe(8), Tympanum(9);

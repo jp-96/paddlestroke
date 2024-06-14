@@ -1,4 +1,4 @@
-package com.welie.blessedexample
+package com.example.paddlestroke.ble
 
 import android.bluetooth.BluetoothAdapter
 import android.content.Context

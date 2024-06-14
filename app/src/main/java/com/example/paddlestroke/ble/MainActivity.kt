@@ -1,4 +1,4 @@
-package com.welie.blessedexample
+package com.example.paddlestroke.ble
 
 import android.Manifest
 import android.app.AlertDialog
@@ -15,7 +15,7 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.welie.blessed.BluetoothPeripheral
-import com.welie.blessedexample.BluetoothHandler.Companion.getInstance
+import com.example.paddlestroke.ble.BluetoothHandler.Companion.getInstance
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow

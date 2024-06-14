@@ -1,4 +1,4 @@
-package com.welie.blessedexample
+package com.example.paddlestroke.ble
 
 enum class ObservationUnit(val notation: String, val mdc: String) {
     BeatsPerMinute("bpm", "MDC_DIM_BEAT_PER_MIN"),

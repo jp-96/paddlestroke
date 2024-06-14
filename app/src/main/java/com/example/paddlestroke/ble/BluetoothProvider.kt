@@ -1,9 +1,7 @@
 package com.example.paddlestroke.ble
 
 import android.content.Context
-import com.welie.blessedexample.BluetoothHandler
-import com.welie.blessedexample.BluetoothHandler.Companion.getInstance
-import com.welie.blessedexample.HeartRateMeasurement
+import com.example.paddlestroke.ble.BluetoothHandler.Companion.getInstance
 import kotlinx.coroutines.channels.Channel
 
 class BluetoothProvider(private val context: Context) {
