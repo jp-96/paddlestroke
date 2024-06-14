@@ -10,7 +10,7 @@ class AndroidHeartRateClient(
     private val context: Context,
     private val provider: BluetoothProvider
 ): HeartRateClient {
-    override fun getHeartRateFlow(intervalMillis: Long): Flow<HeartRateMeasurement> {
+    override fun getHeartRateFlow(): Flow<HeartRateMeasurement> {
         return provider.getHeartRateChannel().consumeAsFlow()
     }
 }
