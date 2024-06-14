@@ -1,4 +1,4 @@
-package com.example.paddlestroke.ble
+package com.welie.blessedexample
 
 /**
  * Enum that contains all sensor contact feature as specified here:

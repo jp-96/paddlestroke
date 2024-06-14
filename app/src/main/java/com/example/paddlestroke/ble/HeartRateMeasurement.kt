@@ -1,4 +1,4 @@
-package com.example.paddlestroke.ble
+package com.welie.blessedexample
 
 import com.welie.blessed.BluetoothBytesParser
 import com.welie.blessed.BluetoothBytesParser.Companion.FORMAT_UINT16

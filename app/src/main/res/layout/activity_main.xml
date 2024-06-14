@@ -158,4 +158,13 @@
         app:layout_constraintStart_toStartOf="@+id/textViewAlt"
         app:layout_constraintTop_toTopOf="@+id/textViewLabelAcc" />
 
+    <TextView
+        android:id="@+id/textViewBle"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:text="ble"
+        app:layout_constraintStart_toStartOf="@+id/textViewLabelAcc"
+        app:layout_constraintTop_toBottomOf="@+id/textViewLabelAcc" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

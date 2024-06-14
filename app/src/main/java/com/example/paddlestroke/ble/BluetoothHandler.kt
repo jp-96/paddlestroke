@@ -1,4 +1,4 @@
-package com.example.paddlestroke.ble
+package com.welie.blessedexample
 
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
@@ -15,12 +15,12 @@ internal class BluetoothHandler private constructor(context: Context) {
 
     private var currentTimeCounter = 0
     val heartRateChannel = Channel<HeartRateMeasurement>(UNLIMITED)
-//    val bloodpressureChannel = Channel<BloodPressureMeasurement>(UNLIMITED)
-//    val glucoseChannel = Channel<GlucoseMeasurement>(UNLIMITED)
-//    val pulseOxSpotChannel = Channel<PulseOximeterSpotMeasurement>(UNLIMITED)
-//    val pulseOxContinuousChannel = Channel<PulseOximeterContinuousMeasurement>(UNLIMITED)
-//    val temperatureChannel = Channel<TemperatureMeasurement>(UNLIMITED)
-//    val weightChannel = Channel<WeightMeasurement>(UNLIMITED)
+    val bloodpressureChannel = Channel<BloodPressureMeasurement>(UNLIMITED)
+    val glucoseChannel = Channel<GlucoseMeasurement>(UNLIMITED)
+    val pulseOxSpotChannel = Channel<PulseOximeterSpotMeasurement>(UNLIMITED)
+    val pulseOxContinuousChannel = Channel<PulseOximeterContinuousMeasurement>(UNLIMITED)
+    val temperatureChannel = Channel<TemperatureMeasurement>(UNLIMITED)
+    val weightChannel = Channel<WeightMeasurement>(UNLIMITED)
 
     private fun handlePeripheral(peripheral: BluetoothPeripheral) {
         scope.launch {
@@ -58,12 +58,12 @@ internal class BluetoothHandler private constructor(context: Context) {
                 }
 
                 setupHRSnotifications(peripheral)
-//                setupPLXnotifications(peripheral)
-//                setupHTSnotifications(peripheral)
-//                setupGLXnotifications(peripheral)
-//                setupBLPnotifications(peripheral)
-//                setupWSSnotifications(peripheral)
-//                setupCTSnotifications(peripheral)
+                setupPLXnotifications(peripheral)
+                setupHTSnotifications(peripheral)
+                setupGLXnotifications(peripheral)
+                setupBLPnotifications(peripheral)
+                setupWSSnotifications(peripheral)
+                setupCTSnotifications(peripheral)
 
                 peripheral.getCharacteristic(CONTOUR_SERVICE_UUID, CONTOUR_CLOCK)?.let {
                     writeContourClock(peripheral)
@@ -92,33 +92,33 @@ internal class BluetoothHandler private constructor(context: Context) {
         peripheral.writeCharacteristic(CONTOUR_SERVICE_UUID, CONTOUR_CLOCK, parser.value, WriteType.WITH_RESPONSE)
     }
 
-//    private suspend fun setupCTSnotifications(peripheral: BluetoothPeripheral) {
-//        peripheral.getCharacteristic(CTS_SERVICE_UUID, CURRENT_TIME_CHARACTERISTIC_UUID)?.let { currentTimeCharacteristic ->
-//            peripheral.observe(currentTimeCharacteristic) { value ->
-//                val parser = BluetoothBytesParser(value)
-//                val currentTime = parser.dateTime
-//                Timber.i("Received device time: %s", currentTime)
-//
-//                // Deal with Omron devices where we can only write currentTime under specific conditions
-//                val name = peripheral.name
-//                if (name.contains("BLEsmart_", true)) {
-//                    peripheral.getCharacteristic(BLP_SERVICE_UUID, BLP_MEASUREMENT_CHARACTERISTIC_UUID)?.let {
-//                        val isNotifying = peripheral.isNotifying(it)
-//                        if (isNotifying) currentTimeCounter++
-//
-//                        // We can set device time for Omron devices only if it is the first notification and currentTime is more than 10 min from now
-//                        val interval = Math.abs(Calendar.getInstance().timeInMillis - currentTime.time)
-//                        if (currentTimeCounter == 1 && interval > 10 * 60 * 1000) {
-//                            parser.setCurrentTime(Calendar.getInstance())
-//                            scope.launch {
-//                                peripheral.writeCharacteristic(it, parser.value, WriteType.WITH_RESPONSE)
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
+    private suspend fun setupCTSnotifications(peripheral: BluetoothPeripheral) {
+        peripheral.getCharacteristic(CTS_SERVICE_UUID, CURRENT_TIME_CHARACTERISTIC_UUID)?.let { currentTimeCharacteristic ->
+            peripheral.observe(currentTimeCharacteristic) { value ->
+                val parser = BluetoothBytesParser(value)
+                val currentTime = parser.dateTime
+                Timber.i("Received device time: %s", currentTime)
+
+                // Deal with Omron devices where we can only write currentTime under specific conditions
+                val name = peripheral.name
+                if (name.contains("BLEsmart_", true)) {
+                    peripheral.getCharacteristic(BLP_SERVICE_UUID, BLP_MEASUREMENT_CHARACTERISTIC_UUID)?.let {
+                        val isNotifying = peripheral.isNotifying(it)
+                        if (isNotifying) currentTimeCounter++
+
+                        // We can set device time for Omron devices only if it is the first notification and currentTime is more than 10 min from now
+                        val interval = Math.abs(Calendar.getInstance().timeInMillis - currentTime.time)
+                        if (currentTimeCounter == 1 && interval > 10 * 60 * 1000) {
+                            parser.setCurrentTime(Calendar.getInstance())
+                            scope.launch {
+                                peripheral.writeCharacteristic(it, parser.value, WriteType.WITH_RESPONSE)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     private suspend fun setupHRSnotifications(peripheral: BluetoothPeripheral) {
         peripheral.getCharacteristic(HRS_SERVICE_UUID, HRS_MEASUREMENT_CHARACTERISTIC_UUID)?.let {
@@ -130,82 +130,82 @@ internal class BluetoothHandler private constructor(context: Context) {
         }
     }
 
-//    private suspend fun setupWSSnotifications(peripheral: BluetoothPeripheral) {
-//        peripheral.getCharacteristic(WSS_SERVICE_UUID, WSS_MEASUREMENT_CHAR_UUID)?.let {
-//            peripheral.observe(it) { value ->
-//                val measurement = WeightMeasurement.fromBytes(value)
-//                weightChannel.trySend(measurement)
-//                Timber.d("%s", measurement)
-//            }
-//        }
-//    }
-//
-//    private suspend fun setupGLXnotifications(peripheral: BluetoothPeripheral) {
-//        peripheral.getCharacteristic(GLUCOSE_SERVICE_UUID, GLUCOSE_MEASUREMENT_CHARACTERISTIC_UUID)?.let {
-//            peripheral.observe(it) { value ->
-//                val measurement = GlucoseMeasurement.fromBytes(value)
-//                glucoseChannel.trySend(measurement)
-//                Timber.d("%s", measurement)
-//            }
-//        }
-//
-//        peripheral.getCharacteristic(GLUCOSE_SERVICE_UUID, GLUCOSE_RECORD_ACCESS_POINT_CHARACTERISTIC_UUID)?.let {
-//            val result = peripheral.observe(it) { value ->
-//                Timber.d("record access response: ${value.asHexString()}")
-//            }
-//
-//            if (result) {
-//                writeGetAllGlucoseMeasurements(peripheral)
-//            }
-//        }
-//    }
-//
-//    private suspend fun writeGetAllGlucoseMeasurements(peripheral: BluetoothPeripheral) {
-//        val OP_CODE_REPORT_STORED_RECORDS: Byte = 1
-//        val OPERATOR_ALL_RECORDS: Byte = 1
-//        val command = byteArrayOf(OP_CODE_REPORT_STORED_RECORDS, OPERATOR_ALL_RECORDS)
-//        peripheral.writeCharacteristic(GLUCOSE_SERVICE_UUID, GLUCOSE_RECORD_ACCESS_POINT_CHARACTERISTIC_UUID, command, WriteType.WITH_RESPONSE)
-//    }
-//
-//    private suspend fun setupBLPnotifications(peripheral: BluetoothPeripheral) {
-//        peripheral.getCharacteristic(BLP_SERVICE_UUID, BLP_MEASUREMENT_CHARACTERISTIC_UUID)?.let {
-//            peripheral.observe(it) { value ->
-//                val measurement = BloodPressureMeasurement.fromBytes(value)
-//                bloodpressureChannel.trySend(measurement)
-//                Timber.d("%s", measurement)
-//            }
-//        }
-//    }
-//
-//    private suspend fun setupHTSnotifications(peripheral: BluetoothPeripheral) {
-//        peripheral.getCharacteristic(HTS_SERVICE_UUID, HTS_MEASUREMENT_CHARACTERISTIC_UUID)?.let {
-//            peripheral.observe(it) { value ->
-//                val measurement = TemperatureMeasurement.fromBytes(value)
-//                temperatureChannel.trySend(measurement)
-//                Timber.d("%s", measurement)
-//            }
-//        }
-//    }
-//
-//    private suspend fun setupPLXnotifications(peripheral: BluetoothPeripheral) {
-//        peripheral.getCharacteristic(PLX_SERVICE_UUID, PLX_CONTINUOUS_MEASUREMENT_CHAR_UUID)?.let {
-//            peripheral.observe(it) { value ->
-//                val measurement = PulseOximeterContinuousMeasurement.fromBytes(value)
-//                if (measurement.spO2 <= 100 && measurement.pulseRate <= 220) {
-//                    pulseOxContinuousChannel.trySend(measurement)
-//                }
-//                Timber.d("%s", measurement)
-//            }
-//        }
-//
-//        peripheral.getCharacteristic(PLX_SERVICE_UUID, PLX_SPOT_MEASUREMENT_CHAR_UUID)?.let {
-//            peripheral.observe(it) { value ->
-//                val measurement = PulseOximeterSpotMeasurement.fromBytes(value)
-//                pulseOxSpotChannel.trySend(measurement)
-//                Timber.d("%s", measurement)
-//            }
-//        }
-//    }
+    private suspend fun setupWSSnotifications(peripheral: BluetoothPeripheral) {
+        peripheral.getCharacteristic(WSS_SERVICE_UUID, WSS_MEASUREMENT_CHAR_UUID)?.let {
+            peripheral.observe(it) { value ->
+                val measurement = WeightMeasurement.fromBytes(value)
+                weightChannel.trySend(measurement)
+                Timber.d("%s", measurement)
+            }
+        }
+    }
+
+    private suspend fun setupGLXnotifications(peripheral: BluetoothPeripheral) {
+        peripheral.getCharacteristic(GLUCOSE_SERVICE_UUID, GLUCOSE_MEASUREMENT_CHARACTERISTIC_UUID)?.let {
+            peripheral.observe(it) { value ->
+                val measurement = GlucoseMeasurement.fromBytes(value)
+                glucoseChannel.trySend(measurement)
+                Timber.d("%s", measurement)
+            }
+        }
+
+        peripheral.getCharacteristic(GLUCOSE_SERVICE_UUID, GLUCOSE_RECORD_ACCESS_POINT_CHARACTERISTIC_UUID)?.let {
+            val result = peripheral.observe(it) { value ->
+                Timber.d("record access response: ${value.asHexString()}")
+            }
+
+            if (result) {
+                writeGetAllGlucoseMeasurements(peripheral)
+            }
+        }
+    }
+
+    private suspend fun writeGetAllGlucoseMeasurements(peripheral: BluetoothPeripheral) {
+        val OP_CODE_REPORT_STORED_RECORDS: Byte = 1
+        val OPERATOR_ALL_RECORDS: Byte = 1
+        val command = byteArrayOf(OP_CODE_REPORT_STORED_RECORDS, OPERATOR_ALL_RECORDS)
+        peripheral.writeCharacteristic(GLUCOSE_SERVICE_UUID, GLUCOSE_RECORD_ACCESS_POINT_CHARACTERISTIC_UUID, command, WriteType.WITH_RESPONSE)
+    }
+
+    private suspend fun setupBLPnotifications(peripheral: BluetoothPeripheral) {
+        peripheral.getCharacteristic(BLP_SERVICE_UUID, BLP_MEASUREMENT_CHARACTERISTIC_UUID)?.let {
+            peripheral.observe(it) { value ->
+                val measurement = BloodPressureMeasurement.fromBytes(value)
+                bloodpressureChannel.trySend(measurement)
+                Timber.d("%s", measurement)
+            }
+        }
+    }
+
+    private suspend fun setupHTSnotifications(peripheral: BluetoothPeripheral) {
+        peripheral.getCharacteristic(HTS_SERVICE_UUID, HTS_MEASUREMENT_CHARACTERISTIC_UUID)?.let {
+            peripheral.observe(it) { value ->
+                val measurement = TemperatureMeasurement.fromBytes(value)
+                temperatureChannel.trySend(measurement)
+                Timber.d("%s", measurement)
+            }
+        }
+    }
+
+    private suspend fun setupPLXnotifications(peripheral: BluetoothPeripheral) {
+        peripheral.getCharacteristic(PLX_SERVICE_UUID, PLX_CONTINUOUS_MEASUREMENT_CHAR_UUID)?.let {
+            peripheral.observe(it) { value ->
+                val measurement = PulseOximeterContinuousMeasurement.fromBytes(value)
+                if (measurement.spO2 <= 100 && measurement.pulseRate <= 220) {
+                    pulseOxContinuousChannel.trySend(measurement)
+                }
+                Timber.d("%s", measurement)
+            }
+        }
+
+        peripheral.getCharacteristic(PLX_SERVICE_UUID, PLX_SPOT_MEASUREMENT_CHAR_UUID)?.let {
+            peripheral.observe(it) { value ->
+                val measurement = PulseOximeterSpotMeasurement.fromBytes(value)
+                pulseOxSpotChannel.trySend(measurement)
+                Timber.d("%s", measurement)
+            }
+        }
+    }
 
     private fun startScanning() {
         central.scanForPeripheralsWithServices(supportedServices,
@@ -275,8 +275,7 @@ internal class BluetoothHandler private constructor(context: Context) {
         private val CONTOUR_CLOCK = UUID.fromString("00001026-0002-11E2-9E96-0800200C9A66")
         private var instance: BluetoothHandler? = null
 
-//        private val supportedServices = arrayOf(BLP_SERVICE_UUID, HTS_SERVICE_UUID, HRS_SERVICE_UUID, PLX_SERVICE_UUID, WSS_SERVICE_UUID, GLUCOSE_SERVICE_UUID)
-        private val supportedServices = arrayOf(HRS_SERVICE_UUID)
+        private val supportedServices = arrayOf(BLP_SERVICE_UUID, HTS_SERVICE_UUID, HRS_SERVICE_UUID, PLX_SERVICE_UUID, WSS_SERVICE_UUID, GLUCOSE_SERVICE_UUID)
 
         @JvmStatic
         @Synchronized
