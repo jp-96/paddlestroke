@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun initBluetoothHandler() {
-        val bluetoothHandler = getInstance(applicationContext)
+        val bluetoothHandler = getInstance(applicationContext, CoroutineScope(SupervisorJob() + Dispatchers.IO))
 
         collectBloodPressure(bluetoothHandler)
         collectHeartRate(bluetoothHandler)
@@ -217,7 +217,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getPeripheral(peripheralAddress: String): BluetoothPeripheral {
-        val central = getInstance(applicationContext).central
+        val central = getInstance(applicationContext, CoroutineScope(SupervisorJob() + Dispatchers.IO)).central
         return central.getPeripheral(peripheralAddress)
     }
 

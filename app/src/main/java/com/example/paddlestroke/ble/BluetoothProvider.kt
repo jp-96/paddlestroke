@@ -3,13 +3,14 @@ package com.example.paddlestroke.ble
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import com.example.paddlestroke.ble.BluetoothHandler.Companion.getInstance
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 
-class BluetoothProvider(private val context: Context) {
+class BluetoothProvider(private val context: Context, private val scope: CoroutineScope) {
     private val bluetoothManager: BluetoothManager =
         context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val bluetoothHandler by lazy {
-        getInstance(context)
+        getInstance(context, scope)
     }
 
     val hasDevice: Boolean

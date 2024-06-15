@@ -17,19 +17,23 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.paddlestroke.ble.BluetoothProvider
 import com.example.paddlestroke.ble.HeartRateMeasurement
-import com.example.paddlestroke.sensor.AndroidHeartRateClient
 import com.example.paddlestroke.sensor.AndroidLocationClient
 import com.example.paddlestroke.sensor.AndroidSensorClient
 import com.example.paddlestroke.sensor.LocationClient
 import com.example.paddlestroke.sensor.SensorClient
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import timber.log.Timber
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -87,13 +91,11 @@ class MainActivity : AppCompatActivity() {
     private fun startHeartRateJob() {
         if (heartRateJob == null) {
             // HeartRate
-            val heartRateClient = AndroidHeartRateClient(this, bleProvider)
-            // Job: HeartRate
-            heartRateJob = heartRateClient.getHeartRateFlow()
+            heartRateJob = bleProvider.getHeartRateChannel().receiveAsFlow()
                 .catch { e -> e.printStackTrace() }
                 .onEach { heartRateMeasurement ->
                     setHeartRateMeasurement(heartRateMeasurement)
-                }.launchIn(MainScope())
+                }.launchIn(lifecycleScope)
         }
     }
 
@@ -128,7 +130,8 @@ class MainActivity : AppCompatActivity() {
         accelerometerClient = AndroidSensorClient(this, Sensor.TYPE_LINEAR_ACCELERATION)
 
         // Ble: HeartRate
-        bleProvider = BluetoothProvider(this)
+//        bleProvider = BluetoothProvider(this, CoroutineScope(SupervisorJob() + Dispatchers.IO))
+        bleProvider = BluetoothProvider(this, lifecycleScope)
     }
 
     override fun onResume() {
@@ -174,11 +177,11 @@ class MainActivity : AppCompatActivity() {
         runBlocking {
             accelerometerJob?.cancelAndJoin()
             locationJob?.cancelAndJoin()
-            //heartRateJob?.cancelAndJoin()
+            heartRateJob?.cancelAndJoin()
         }
         accelerometerJob = null
         locationJob = null
-        //heartRateJob = null
+        heartRateJob = null
 
         synchronized(this) {
             bufferedWriter?.write("onPause()")
@@ -244,6 +247,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setHeartRateMeasurement(heartRateMeasurement: HeartRateMeasurement) {
+        Timber.i("setHeartRateMeasurement: %s", heartRateMeasurement)
         textViewBle.text = String.format("%d bpm", heartRateMeasurement.pulse)
     }
 }
