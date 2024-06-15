@@ -1,7 +1,6 @@
 package com.example.paddlestroke
 
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
 import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -31,7 +30,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
-import timber.log.Timber
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -66,19 +64,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var locationClient: LocationClient
     private var locationJob: Job? = null
 
+    private lateinit var bleProvider: BluetoothProvider
     private var heartRateJob: Job? = null
-
-    private val bluetoothManager by lazy {
-        applicationContext
-            .getSystemService(BLUETOOTH_SERVICE)
-                as BluetoothManager
-    }
-
-    private val isBluetoothEnabled: Boolean
-        get() {
-            val bluetoothAdapter = bluetoothManager.adapter ?: return false
-            return bluetoothAdapter.isEnabled
-        }
 
     private val enableBluetoothRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -100,7 +87,6 @@ class MainActivity : AppCompatActivity() {
     private fun startHeartRateJob() {
         if (heartRateJob == null) {
             // HeartRate
-            val bleProvider = BluetoothProvider(this)
             val heartRateClient = AndroidHeartRateClient(this, bleProvider)
             // Job: HeartRate
             heartRateJob = heartRateClient.getHeartRateFlow()
@@ -141,6 +127,8 @@ class MainActivity : AppCompatActivity() {
         //accelerometerClient = AndroidSensorClient(this, Sensor.TYPE_ACCELEROMETER)
         accelerometerClient = AndroidSensorClient(this, Sensor.TYPE_LINEAR_ACCELERATION)
 
+        // Ble: HeartRate
+        bleProvider = BluetoothProvider(this)
     }
 
     override fun onResume() {
@@ -171,15 +159,12 @@ class MainActivity : AppCompatActivity() {
             }.launchIn(lifecycleScope)
 
         // ble: HeartRate
-        if (bluetoothManager.adapter != null) {
-            if (!isBluetoothEnabled) {
-                askToEnableBluetooth()
-            } else {
-                //checkPermissions()
-                startHeartRateJob()
-            }
+        textViewBle.text = "---"
+        if (bleProvider.isEnabled) {
+            //checkPermissions()
+            startHeartRateJob()
         } else {
-            Timber.e("This device has no Bluetooth hardware")
+            askToEnableBluetooth()
         }
 
     }
