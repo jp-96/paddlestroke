@@ -1,4 +1,4 @@
-package com.example.paddlestroke.sensor
+package com.example.paddlestroke.datasource.sensor
 
 import android.Manifest
 import android.annotation.SuppressLint
