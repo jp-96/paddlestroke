@@ -1,4 +1,4 @@
-package com.example.paddlestroke.ble
+package com.example.paddlestroke.datasource.ble
 
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
@@ -266,7 +266,8 @@ internal class BluetoothHandler private constructor(
     }
 
     private fun startScanning() {
-        central.scanForPeripheralsWithServices(supportedServices,
+        central.scanForPeripheralsWithServices(
+            supportedServices,
             { peripheral, scanResult ->
                 Timber.i("Found peripheral '${peripheral.name}' with RSSI ${scanResult.rssi}")
                 central.stopScan()

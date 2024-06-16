@@ -1,8 +1,8 @@
-package com.example.paddlestroke.ble
+package com.example.paddlestroke.datasource.ble
 
 import android.bluetooth.BluetoothManager
 import android.content.Context
-import com.example.paddlestroke.ble.BluetoothHandler.Companion.getInstance
+import com.example.paddlestroke.datasource.ble.BluetoothHandler.Companion.getInstance
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 

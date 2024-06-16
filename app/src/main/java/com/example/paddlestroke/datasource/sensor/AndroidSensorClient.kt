@@ -1,4 +1,4 @@
-package com.example.paddlestroke.sensor
+package com.example.paddlestroke.datasource.sensor
 
 import android.content.Context
 import android.hardware.Sensor

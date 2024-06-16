@@ -1,10 +1,10 @@
-package com.example.paddlestroke.ble
+package com.example.paddlestroke.datasource.ble
 
 import com.welie.blessed.BluetoothBytesParser
 import com.welie.blessed.BluetoothBytesParser.Companion.FORMAT_UINT16
 import com.welie.blessed.BluetoothBytesParser.Companion.FORMAT_UINT8
-import com.example.paddlestroke.ble.ObservationUnit.Kilograms
-import com.example.paddlestroke.ble.ObservationUnit.Pounds
+import com.example.paddlestroke.datasource.ble.ObservationUnit.Kilograms
+import com.example.paddlestroke.datasource.ble.ObservationUnit.Pounds
 import java.util.*
 import kotlin.math.round
 
