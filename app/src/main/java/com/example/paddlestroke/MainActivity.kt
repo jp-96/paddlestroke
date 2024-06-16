@@ -2,8 +2,6 @@ package com.example.paddlestroke
 
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
-import android.hardware.Sensor
-import android.hardware.SensorManager
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -14,18 +12,13 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.paddlestroke.data.DataRecord
-import com.example.paddlestroke.datasource.ble.BluetoothProvider
-import com.example.paddlestroke.datasource.sensor.AndroidLocationClient
-import com.example.paddlestroke.datasource.sensor.AndroidSensorClient
-import com.example.paddlestroke.datasource.sensor.LocationClient
-import com.example.paddlestroke.datasource.sensor.SensorClient
-import com.google.android.gms.location.LocationServices
+import com.example.paddlestroke.repository.AndroidDataRepository
+import com.example.paddlestroke.repository.DataRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 import java.io.BufferedWriter
@@ -51,46 +44,32 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var textViewBle: TextView
 
+    private lateinit var dataRepository: DataRepository
+    private var repositoryJob: Job? = null
+
     private var bufferedWriter: BufferedWriter? = null
 
     private val UPDATE_INTERVAL_MS: Long = 1000L
     private var lastUpdate: Long = 0L
 
-    private lateinit var accelerometerClient: SensorClient
-    private var accelerometerJob: Job? = null
-
-    private lateinit var locationClient: LocationClient
-    private var locationJob: Job? = null
-
-    private lateinit var bleProvider: BluetoothProvider
-    private var heartRateJob: Job? = null
-
     private val enableBluetoothRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode == RESULT_OK) {
                 // Bluetooth has been enabled
-                //checkPermissions()
-                startHeartRateJob()
+                startDataRepository()
             } else {
                 // Bluetooth has not been enabled, try again
                 askToEnableBluetooth()
             }
         }
 
+    private fun startDataRepository() {
+        dataRepository.start(lifecycleScope)
+    }
+
     private fun askToEnableBluetooth() {
         val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
         enableBluetoothRequest.launch(enableBtIntent)
-    }
-
-    private fun startHeartRateJob() {
-        if (heartRateJob == null) {
-            // HeartRate
-            heartRateJob = bleProvider.getHeartRateChannel().receiveAsFlow()
-                .catch { e -> e.printStackTrace() }
-                .onEach { dataRecord ->
-                    setHeartRateDataRecord(dataRecord)
-                }.launchIn(lifecycleScope)
-        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -115,17 +94,8 @@ class MainActivity : AppCompatActivity() {
 
         textViewBle = findViewById<View>(R.id.textViewBle) as TextView
 
-        // Location
-        val providerClient = LocationServices.getFusedLocationProviderClient(this)
-        locationClient = AndroidLocationClient(this, providerClient)
-
-        // Accelerometer
-        //accelerometerClient = AndroidSensorClient(this, Sensor.TYPE_ACCELEROMETER)
-        accelerometerClient = AndroidSensorClient(this, Sensor.TYPE_LINEAR_ACCELERATION)
-
-        // Ble: HeartRate
-//        bleProvider = BluetoothProvider(this, CoroutineScope(SupervisorJob() + Dispatchers.IO))
-        bleProvider = BluetoothProvider(this, lifecycleScope)
+        // DataRepository
+        dataRepository = AndroidDataRepository(this)
     }
 
     override fun onResume() {
@@ -139,25 +109,14 @@ class MainActivity : AppCompatActivity() {
         val file = File(getExternalFilesDir("logs"), filename)
         bufferedWriter = BufferedWriter(FileWriter(file))
 
-        // Job: Location
-        locationJob = locationClient.getLocationFlow(1000L)
+        repositoryJob = dataRepository.getDataRecordFlow()
             .catch { e -> e.printStackTrace() }
             .onEach { dataRecord ->
                 setDataRecordText(dataRecord)
             }.launchIn(lifecycleScope)
 
-        // Job: Sensor
-        accelerometerJob = accelerometerClient.getSensorEventFlow(SensorManager.SENSOR_DELAY_UI)
-            .catch { e -> e.printStackTrace() }
-            .onEach { dataRecord ->
-                setDataRecordText(dataRecord)
-            }.launchIn(lifecycleScope)
-
-        // ble: HeartRate
-        textViewBle.text = "---"
-        if (bleProvider.isEnabled) {
-            //checkPermissions()
-            startHeartRateJob()
+        if (dataRepository.isBluetoothEnabled()) {
+            startDataRepository()
         } else {
             askToEnableBluetooth()
         }
@@ -167,13 +126,9 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
 
         runBlocking {
-            accelerometerJob?.cancelAndJoin()
-            locationJob?.cancelAndJoin()
-            heartRateJob?.cancelAndJoin()
+            repositoryJob?.cancelAndJoin()
         }
-        accelerometerJob = null
-        locationJob = null
-        heartRateJob = null
+        repositoryJob = null
 
         synchronized(this) {
             bufferedWriter?.write("onPause()")

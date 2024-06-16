@@ -7,12 +7,10 @@ import com.example.paddlestroke.datasource.ble.BluetoothHandler.Companion.getIns
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 
-class BluetoothProvider(private val context: Context, private val scope: CoroutineScope) {
+class BluetoothProvider(private val context: Context) {
     private val bluetoothManager: BluetoothManager =
         context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-    private val bluetoothHandler by lazy {
-        getInstance(context, scope)
-    }
+    private lateinit var bluetoothHandler: BluetoothHandler
 
     val hasDevice: Boolean
         get() {
@@ -24,6 +22,10 @@ class BluetoothProvider(private val context: Context, private val scope: Corouti
             val bluetoothAdapter = bluetoothManager.adapter ?: return false
             return bluetoothAdapter.isEnabled
         }
+
+    fun start(scope: CoroutineScope) {
+        bluetoothHandler = getInstance(context, scope)
+    }
 
     fun getHeartRateChannel(): Channel<DataRecord> {
         return bluetoothHandler.heartRateChannel
