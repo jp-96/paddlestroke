@@ -3,9 +3,7 @@ package com.example.paddlestroke
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.hardware.Sensor
-import android.hardware.SensorEvent
 import android.hardware.SensorManager
-import android.location.Location
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -15,8 +13,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.paddlestroke.data.DataRecord
 import com.example.paddlestroke.datasource.ble.BluetoothProvider
-import com.example.paddlestroke.datasource.ble.HeartRateMeasurement
 import com.example.paddlestroke.datasource.sensor.AndroidLocationClient
 import com.example.paddlestroke.datasource.sensor.AndroidSensorClient
 import com.example.paddlestroke.datasource.sensor.LocationClient
@@ -89,8 +87,8 @@ class MainActivity : AppCompatActivity() {
             // HeartRate
             heartRateJob = bleProvider.getHeartRateChannel().receiveAsFlow()
                 .catch { e -> e.printStackTrace() }
-                .onEach { heartRateMeasurement ->
-                    setHeartRateMeasurement(heartRateMeasurement)
+                .onEach { dataRecord ->
+                    setHeartRateDataRecord(dataRecord)
                 }.launchIn(lifecycleScope)
         }
     }
@@ -144,17 +142,15 @@ class MainActivity : AppCompatActivity() {
         // Job: Location
         locationJob = locationClient.getLocationFlow(1000L)
             .catch { e -> e.printStackTrace() }
-            .onEach { location ->
-                setLocationText(location)
+            .onEach { dataRecord ->
+                setDataRecordText(dataRecord)
             }.launchIn(lifecycleScope)
 
         // Job: Sensor
         accelerometerJob = accelerometerClient.getSensorEventFlow(SensorManager.SENSOR_DELAY_UI)
             .catch { e -> e.printStackTrace() }
-            .onEach { sensorEvent ->
-                val timestamp = sensorEvent.timestamp
-                addRecord(timestamp, "acce", 3, sensorEvent.values)
-                setAccelerometerText(sensorEvent)
+            .onEach { dataRecord ->
+                setDataRecordText(dataRecord)
             }.launchIn(lifecycleScope)
 
         // ble: HeartRate
@@ -204,16 +200,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setAccelerometerText(sensorEvent: SensorEvent) {
+    private fun setDataRecordText(dataRecord: DataRecord) {
+        when (dataRecord.type) {
+            DataRecord.Type.ACCEL -> setAccelerometerText(dataRecord)
+            DataRecord.Type.LOCATION -> setLocationText(dataRecord)
+            DataRecord.Type.HEART_BPM -> setHeartRateDataRecord(dataRecord)
+            else -> Unit
+        }
+    }
+
+    private fun setAccelerometerText(dataRecord: DataRecord) {
+        // ファイル出力
+        val timestamp = dataRecord.timestamp
+        addRecord(timestamp, "acce", 3, dataRecord.data as FloatArray)
 
         val actualTime = System.currentTimeMillis()
-
         if (actualTime - lastUpdate > UPDATE_INTERVAL_MS) {
             lastUpdate = actualTime
-
-            val x = sensorEvent.values[0]
-            val y = sensorEvent.values[1]
-            val z = sensorEvent.values[2]
+            val arr = dataRecord.data as FloatArray
+            val x = arr[0]
+            val y = arr[1]
+            val z = arr[2]
 
             textViewX.text = x.toString()
             textViewY.text = y.toString()
@@ -221,29 +228,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setLocationText(location: Location?) {
-        if (location != null) {
-            val time: String = SimpleDateFormat(
-                "yyyy/MM/dd HH:mm:ss", Locale.getDefault()
-            ).format(Date(location.time))
-            val lon = location.longitude
-            val lat = location.latitude
-            textViewTime.text = "測定時刻：$time"
-            textViewLon.text = "経度：$lon"
-            textViewLat.text = "緯度：$lat"
-            if (location.hasAccuracy()) {
-                val acc = location.accuracy.toDouble()
-                textViewAcc.text = "精度：$acc"
-            }
-            if (location.hasAltitude()) {
-                val alt = location.altitude
-                textViewAlt.text = "高度：$alt"
-            }
-        }
+    private fun setLocationText(dataRecord: DataRecord) {
+        val time: String = SimpleDateFormat(
+            "yyyy/MM/dd HH:mm:ss", Locale.getDefault()
+        ).format(Date(dataRecord.timestamp))
+        // data: DoubleArray 0- "lat" 1- "long" 2- "alt" 3- "speed" 4- "bearing" 5- "accuracy"
+        val arr = dataRecord.data as DoubleArray
+        val lat = arr[0]
+        val lon = arr[1]
+        val alt = arr[2]
+        val spd = arr[3]
+        val bea = arr[4]
+        val acc = arr[5]
+        textViewTime.text = "測定時刻：$time"
+        textViewLon.text = "経度：$lon"
+        textViewLat.text = "緯度：$lat"
+        textViewAcc.text = "精度：$acc"
+        textViewAlt.text = "速度:$spd"
     }
 
-    private fun setHeartRateMeasurement(heartRateMeasurement: HeartRateMeasurement) {
-        Timber.i("setHeartRateMeasurement: %s", heartRateMeasurement)
-        textViewBle.text = String.format("%d bpm", heartRateMeasurement.pulse)
+    private fun setHeartRateDataRecord(dataRecord: DataRecord) {
+        Timber.i("setHeartRateMeasurement: %s", dataRecord)
+        textViewBle.text = String.format("%d bpm", dataRecord.data)
     }
+
 }

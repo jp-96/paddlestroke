@@ -31,7 +31,7 @@ class DataRecord(val type: Type, val timestamp: Long, val data: Any) {
         STROKE_POWER_START,
         ROWING_STOP(false, object : DataRecordSerializer() {
             override fun doSerialize(data: Any?): String? {
-                val arr = nullableAnyArray( data)!!
+                val arr = nullableAnyArray(data)!!
                 /* stopTimestamp, distance, splitTime, travelTime, strokeCount */return String.format(
                     "%d,%f,%d,%d,%d",
                     *arr
@@ -80,6 +80,10 @@ class DataRecord(val type: Type, val timestamp: Long, val data: Any) {
         STROKE_ACCELERATION_TRESHOLD,
         STROKE_ROLL(false, DataRecordSerializer.FLOAT_ARR()),
         RECOVERY_ROLL(false, DataRecordSerializer.FLOAT_ARR()),
+
+        /**
+         * data: FloatArray 0-x, 1-y, 2-z
+         */
         ACCEL(true, false, object : DataExporter {
             override val columnNames: Array<String>
                 get() = arrayOf("x", "y", "z")
@@ -98,7 +102,17 @@ class DataRecord(val type: Type, val timestamp: Long, val data: Any) {
                 return arrayOf(arr[0], arr[1], arr[2])
             }
         }, DataRecordSerializer.FLOAT_ARR()),
-        GPS(true, false, object : DataExporter {
+
+        /**
+         * data: DoubleArray
+         *  0- "lat"
+         *  1- "long"
+         *  2- "alt"
+         *  3- "speed"
+         *  4- "bearing"
+         *  5- "accuracy"
+         */
+        LOCATION(true, false, object : DataExporter {
             override val columnNames: Array<String>
                 get() = arrayOf("lat", "long", "alt", "speed", "bearing", "accuracy")
 

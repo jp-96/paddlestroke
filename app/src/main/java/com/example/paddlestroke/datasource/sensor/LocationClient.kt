@@ -1,9 +1,9 @@
 package com.example.paddlestroke.datasource.sensor
 
-import android.location.Location
+import com.example.paddlestroke.data.DataRecord
 import kotlinx.coroutines.flow.Flow
 
 interface LocationClient {
-    fun getLocationFlow(intervalMillis: Long): Flow<Location>
+    fun getLocationFlow(intervalMillis: Long): Flow<DataRecord>
     class LocationException(message: String) : Exception()
 }

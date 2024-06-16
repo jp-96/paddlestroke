@@ -2,6 +2,7 @@ package com.example.paddlestroke.datasource.ble
 
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
+import com.example.paddlestroke.data.DataRecord
 import com.welie.blessed.BluetoothBytesParser
 import com.welie.blessed.BluetoothCentralManager
 import com.welie.blessed.BluetoothPeripheral
@@ -33,8 +34,9 @@ internal class BluetoothHandler private constructor(
 ) {
 
     private var currentTimeCounter = 0
+
     val heartRateChannel =
-        Channel<HeartRateMeasurement>(RENDEZVOUS, BufferOverflow.DROP_OLDEST) //(UNLIMITED)
+        Channel<DataRecord>(RENDEZVOUS, BufferOverflow.DROP_OLDEST) //(UNLIMITED)
     val bloodpressureChannel = Channel<BloodPressureMeasurement>()//(UNLIMITED)
     val glucoseChannel = Channel<GlucoseMeasurement>()//(UNLIMITED)
     val pulseOxSpotChannel = Channel<PulseOximeterSpotMeasurement>()//(UNLIMITED)
@@ -173,7 +175,10 @@ internal class BluetoothHandler private constructor(
             peripheral.observe(it) { value ->
                 val measurement = HeartRateMeasurement.fromBytes(value)
                 Timber.d("before: %s", measurement)
-                heartRateChannel.trySend(measurement)
+                val timestamp = System.currentTimeMillis()
+                val dataRecord =
+                    DataRecord.create(DataRecord.Type.HEART_BPM, timestamp, measurement.pulse)
+                heartRateChannel.trySend(dataRecord)
                 Timber.d("after: %s", measurement)
             }
         }

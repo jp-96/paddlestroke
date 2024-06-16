@@ -4,25 +4,31 @@ import android.Manifest
 import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
-import android.content.*
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.view.View
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.welie.blessed.BluetoothPeripheral
 import com.example.paddlestroke.datasource.ble.BluetoothHandler.Companion.getInstance
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.collect
+import com.welie.blessed.BluetoothPeripheral
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.text.DateFormat
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -82,7 +88,8 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun initBluetoothHandler() {
-        val bluetoothHandler = getInstance(applicationContext, CoroutineScope(SupervisorJob() + Dispatchers.IO))
+        val bluetoothHandler =
+            getInstance(applicationContext, CoroutineScope(SupervisorJob() + Dispatchers.IO))
 
         collectBloodPressure(bluetoothHandler)
         collectHeartRate(bluetoothHandler)
@@ -131,7 +138,7 @@ class MainActivity : AppCompatActivity() {
         scope.launch {
             bluetoothHandler.heartRateChannel.consumeAsFlow().collect {
                 withContext(Dispatchers.Main) {
-                    measurementValue?.text = String.format(Locale.ENGLISH, "%d bpm", it.pulse)
+                    measurementValue?.text = String.format(Locale.ENGLISH, "%d bpm", it.data)
                 }
             }
         }
@@ -217,7 +224,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getPeripheral(peripheralAddress: String): BluetoothPeripheral {
-        val central = getInstance(applicationContext, CoroutineScope(SupervisorJob() + Dispatchers.IO)).central
+        val central = getInstance(
+            applicationContext,
+            CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        ).central
         return central.getPeripheral(peripheralAddress)
     }
 

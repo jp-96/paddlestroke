@@ -1,13 +1,10 @@
 package com.example.paddlestroke.datasource.sensor
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Looper
-import androidx.core.app.ActivityCompat
-import com.example.paddlestroke.utils.hasLocationPermission
+import com.example.paddlestroke.data.DataRecord
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -21,13 +18,30 @@ class AndroidLocationClient(
     private val providerClient: FusedLocationProviderClient
 ) : LocationClient {
 
+    companion object {
+        fun createDataRecord(location: Location): DataRecord {
+            // data: FloatArray 0-x, 1-y, 2-z
+            return DataRecord(
+                DataRecord.Type.LOCATION, location.time, doubleArrayOf(
+                    // arrayOf("lat", "long", "alt", "speed", "bearing", "accuracy")
+                    location.latitude,
+                    location.longitude,
+                    location.altitude,
+                    location.speed.toDouble(),
+                    location.bearing.toDouble(),
+                    location.accuracy.toDouble(),
+                )
+            )
+        }
+    }
+
     @SuppressLint("MissingPermission")
-    override fun getLocationFlow(intervalMillis: Long) = callbackFlow<Location> {
+    override fun getLocationFlow(intervalMillis: Long) = callbackFlow<DataRecord> {
         val callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 result ?: return
                 result.locations.lastOrNull()?.let { location ->
-                    trySend(location)
+                    trySend(createDataRecord(location))
                 }
             }
         }

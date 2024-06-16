@@ -5,6 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import com.example.paddlestroke.data.DataRecord
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
@@ -12,11 +13,19 @@ import kotlinx.coroutines.launch
 class AndroidSensorClient(
     private val context: Context, private val sensorType: Int
 ) : SensorClient {
+
+    companion object {
+        fun createDataRecord(event: SensorEvent): DataRecord {
+            // data: FloatArray 0-x, 1-y, 2-z
+            return DataRecord.create(DataRecord.Type.ACCEL, event.timestamp, event.values)
+        }
+    }
+
     override fun getSensorEventFlow(samplingPeriodUs: Int) = callbackFlow {
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
                 if (event?.sensor?.type == sensorType) {
-                    trySend(event)
+                    trySend(createDataRecord(event))
                 }
             }
 
