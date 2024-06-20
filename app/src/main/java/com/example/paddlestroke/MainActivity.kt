@@ -14,6 +14,8 @@ import androidx.lifecycle.lifecycleScope
 import com.example.paddlestroke.data.DataRecord
 import com.example.paddlestroke.repository.AndroidDataRepository
 import com.example.paddlestroke.repository.DataRepository
+import com.example.paddlestroke.service.AndroidRunningService
+import com.example.paddlestroke.service.AndroidRunningService.Companion.ACTION_START
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.catch
@@ -52,6 +54,8 @@ class MainActivity : AppCompatActivity() {
     private val UPDATE_INTERVAL_MS: Long = 1000L
     private var lastUpdate: Long = 0L
 
+    private var isFirstAskBLE = true
+
     private val enableBluetoothRequest =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode == RESULT_OK) {
@@ -71,6 +75,12 @@ class MainActivity : AppCompatActivity() {
         val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
         enableBluetoothRequest.launch(enableBtIntent)
     }
+
+    private fun sendCommandToService(action: String) =
+        Intent(applicationContext, AndroidRunningService::class.java).also {
+            it.action = action
+            applicationContext.startService(it)
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,6 +106,8 @@ class MainActivity : AppCompatActivity() {
 
         // DataRepository
         dataRepository = AndroidDataRepository(this)
+
+        sendCommandToService(ACTION_START)
     }
 
     override fun onResume() {
@@ -104,7 +116,7 @@ class MainActivity : AppCompatActivity() {
         lastUpdate = System.currentTimeMillis()
 
         val currentTime: Calendar = Calendar.getInstance()
-        val formatter = SimpleDateFormat("yyyyMMddhhmmss")
+        val formatter = SimpleDateFormat("yyyyMMddhhmmss", Locale.getDefault())
         val filename: String = "datalog_" + formatter.format(currentTime.getTime()) + ".csv"
         val file = File(getExternalFilesDir("logs"), filename)
         bufferedWriter = BufferedWriter(FileWriter(file))
@@ -115,9 +127,10 @@ class MainActivity : AppCompatActivity() {
                 setDataRecordText(dataRecord)
             }.launchIn(lifecycleScope)
 
-        if (dataRepository.isBluetoothEnabled()) {
+        if (dataRepository.isBluetoothEnabled() || !isFirstAskBLE) {
             startDataRepository()
         } else {
+            isFirstAskBLE = false
             askToEnableBluetooth()
         }
 
