@@ -1,6 +1,8 @@
 package com.example.paddlestroke
 
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
@@ -12,13 +14,13 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.paddlestroke.data.DataRecord
-import com.example.paddlestroke.repository.AndroidDataRepository
-import com.example.paddlestroke.repository.DataRepository
-import com.example.paddlestroke.service.AndroidRunningService
-import com.example.paddlestroke.service.AndroidRunningService.Companion.ACTION_START
+import com.example.paddlestroke.datasource.ble.hasDevice
+import com.example.paddlestroke.datasource.ble.isEnabled
+import com.example.paddlestroke.service.RunningService
+import com.example.paddlestroke.service.RunningService.Companion.ACTION_START
+import com.example.paddlestroke.service.RunningService.Companion.ACTION_STOP
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
@@ -46,7 +48,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var textViewBle: TextView
 
-    private lateinit var dataRepository: DataRepository
+    //    private lateinit var dataRepository: DataRepository
     private var repositoryJob: Job? = null
 
     private var bufferedWriter: BufferedWriter? = null
@@ -67,20 +69,24 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-    private fun startDataRepository() {
-        dataRepository.start(lifecycleScope)
-    }
-
     private fun askToEnableBluetooth() {
         val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
         enableBluetoothRequest.launch(enableBtIntent)
     }
 
     private fun sendCommandToService(action: String) =
-        Intent(applicationContext, AndroidRunningService::class.java).also {
+        Intent(applicationContext, RunningService::class.java).also {
             it.action = action
             applicationContext.startService(it)
         }
+
+    private fun startDataRepository() {
+        sendCommandToService(ACTION_START)
+    }
+
+    private fun stopDataRepository() {
+        sendCommandToService(ACTION_STOP)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -104,10 +110,6 @@ class MainActivity : AppCompatActivity() {
 
         textViewBle = findViewById<View>(R.id.textViewBle) as TextView
 
-        // DataRepository
-        dataRepository = AndroidDataRepository(this)
-
-        sendCommandToService(ACTION_START)
     }
 
     override fun onResume() {
@@ -121,18 +123,19 @@ class MainActivity : AppCompatActivity() {
         val file = File(getExternalFilesDir("logs"), filename)
         bufferedWriter = BufferedWriter(FileWriter(file))
 
-        repositoryJob = dataRepository.getDataRecordFlow()
-            .catch { e -> e.printStackTrace() }
-            .onEach { dataRecord ->
-                setDataRecordText(dataRecord)
-            }.launchIn(lifecycleScope)
-
-        if (dataRepository.isBluetoothEnabled() || !isFirstAskBLE) {
+        val bluetoothManager: BluetoothManager =
+            getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        if (!bluetoothManager.hasDevice || bluetoothManager.isEnabled || !isFirstAskBLE) {
             startDataRepository()
         } else {
             isFirstAskBLE = false
             askToEnableBluetooth()
         }
+
+        repositoryJob = RunningService.dataRecordFlow
+            .onEach { dataRecord ->
+                setDataRecordText(dataRecord)
+            }.launchIn(lifecycleScope)
 
     }
 

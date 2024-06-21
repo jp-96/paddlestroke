@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 
-class AndroidDataRepository(private val context: Context) :
+class AndroidDataRepository(private val context: Context, private val scope: CoroutineScope) :
     DataRepository {
 
     private val dataRecordFlow = MutableSharedFlow<DataRecord>()
@@ -27,17 +27,13 @@ class AndroidDataRepository(private val context: Context) :
     private val providerClient = LocationServices.getFusedLocationProviderClient(context)
     private val locationClient = AndroidLocationClient(context, providerClient)
 
-    private val bleProvider = BluetoothProvider(context)
+    private val bleProvider = BluetoothProvider(context, scope)
 
     private var accelerometerJob: Job? = null
     private var locationJob: Job? = null
     private var heartRateJob: Job? = null
 
-    override fun isBluetoothEnabled(): Boolean {
-        return bleProvider.isEnabled
-    }
-
-    override fun start(scope: CoroutineScope) {
+    override fun start() {
 
         // Accelerometer
         accelerometerJob = accelerometerClient.getSensorEventFlow(SensorManager.SENSOR_DELAY_UI)
@@ -55,7 +51,7 @@ class AndroidDataRepository(private val context: Context) :
 
         // BLE: HeartRate
         if (bleProvider.isEnabled) {
-            bleProvider.start(scope)
+            bleProvider.start()
             heartRateJob = bleProvider.getHeartRateChannel().receiveAsFlow()
                 .catch { e -> e.printStackTrace() }
                 .onEach { dataRecord ->
