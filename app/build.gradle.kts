@@ -55,4 +55,6 @@ dependencies {
     implementation(libs.blessed.android.coroutines)
 
     implementation(libs.timber)
+    implementation(libs.easypermissions)
+    
 }

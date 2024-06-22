@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
 
-class RunningService : LifecycleService() {
+class AndroidRunningService : LifecycleService() {
 
     companion object {
         const val ACTION_START = "ACTION_START"
@@ -84,6 +84,8 @@ class RunningService : LifecycleService() {
     }
 
     private fun stopRunningService() {
+        // stopForeground(true)
+        stopForeground(STOP_FOREGROUND_DETACH)
         stopSelf()
     }
 

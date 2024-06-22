@@ -11,8 +11,9 @@ activity = "1.8.0"
 constraintlayout = "2.1.4"
 location = "21.3.0"
 blessed = "0.4.1"
-timber="5.0.1"
+timber = "5.0.1"
 lifecycleService = "2.8.2"
+easypermissions = "3.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -31,10 +32,13 @@ gms-location = { group = "com.google.android.gms", name = "play-services-locatio
 blessed-android-coroutines = { group = "com.github.weliem", name = "blessed-android-coroutines", version.ref = "blessed" }
 
 # implementation 'com.jakewharton.timber:timber:5.0.1'
-timber = {group="com.jakewharton.timber", name ="timber", version.ref="timber"}
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 
 # Coroutine Lifecycle Scopes
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
+
+# Easy Permissions
+easypermissions = { group = "pub.devrel", name = "easypermissions", version.ref = "easypermissions" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
