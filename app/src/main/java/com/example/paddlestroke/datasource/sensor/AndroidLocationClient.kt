@@ -20,9 +20,12 @@ class AndroidLocationClient(
 
     companion object {
         fun createDataRecord(location: Location): DataRecord {
-            // data: FloatArray 0-x, 1-y, 2-z
+            // data: DoubleArray 0-lat, 1-long, 2-alt, 3-speed, 4-bearing, 5-accuracy
+            //val timestamp = elapsedRealtimeNanos()
             return DataRecord(
-                DataRecord.Type.LOCATION, location.time, doubleArrayOf(
+                DataRecord.Type.LOCATION,
+                location.time /*timestamp*/,
+                doubleArrayOf(
                     // arrayOf("lat", "long", "alt", "speed", "bearing", "accuracy")
                     location.latitude,
                     location.longitude,
@@ -39,7 +42,6 @@ class AndroidLocationClient(
     override fun getLocationFlow(intervalMillis: Long) = callbackFlow<DataRecord> {
         val callback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
-                result ?: return
                 result.locations.lastOrNull()?.let { location ->
                     trySend(createDataRecord(location))
                 }

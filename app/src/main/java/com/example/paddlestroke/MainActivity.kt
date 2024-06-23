@@ -35,19 +35,15 @@ import kotlinx.coroutines.runBlocking
 import pub.devrel.easypermissions.AppSettingsDialog
 import pub.devrel.easypermissions.EasyPermissions
 import timber.log.Timber
-import java.io.BufferedWriter
-import java.io.File
-import java.io.FileWriter
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import java.util.StringJoiner
 
 class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     companion object {
         const val REQUEST_CODE_LOCATION_PERMISSION = 0
+        const val UPDATE_INTERVAL_MS: Long = 1000L
     }
 
     private lateinit var textViewX: TextView
@@ -62,12 +58,8 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     private lateinit var textViewBle: TextView
 
-    //    private lateinit var dataRepository: DataRepository
     private var repositoryJob: Job? = null
 
-    private var bufferedWriter: BufferedWriter? = null
-
-    private val UPDATE_INTERVAL_MS: Long = 1000L
     private var lastUpdate: Long = 0L
 
     private var isFirstAskBLE = true
@@ -152,13 +144,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     override fun onResume() {
         super.onResume()
 
-        lastUpdate = System.currentTimeMillis()
-
-        val currentTime: Calendar = Calendar.getInstance()
-        val formatter = SimpleDateFormat("yyyyMMddhhmmss", Locale.getDefault())
-        val filename: String = "datalog_" + formatter.format(currentTime.getTime()) + ".csv"
-        val file = File(getExternalFilesDir("logs"), filename)
-        bufferedWriter = BufferedWriter(FileWriter(file))
+        lastUpdate = 0
 
         val bluetoothManager: BluetoothManager =
             getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -183,50 +169,23 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         }
         repositoryJob = null
 
-        synchronized(this) {
-            bufferedWriter?.write("onPause()")
-            bufferedWriter?.newLine()
-            bufferedWriter?.flush()
-            bufferedWriter?.close()
-        }
-
         stopDataRepository()
 
         super.onPause()
-    }
-
-    fun addRecord(timestamp: Long, tag: String, numValues: Int, values: FloatArray) {
-        // record timestamp, and values in text file
-        val stringJoiner = StringJoiner(",") //StringBuilder()
-        stringJoiner.add("$timestamp")
-        stringJoiner.add(tag)
-        for (i in 0 until numValues) {
-            stringJoiner.add(String.format(Locale.US, "%.6f", values[i]))
-        }
-        synchronized(this) {
-            val writer = bufferedWriter
-            writer?.write(stringJoiner.toString())
-            writer?.newLine()
-            writer?.flush()
-        }
     }
 
     private fun setDataRecordText(dataRecord: DataRecord) {
         when (dataRecord.type) {
             DataRecord.Type.ACCEL -> setAccelerometerText(dataRecord)
             DataRecord.Type.LOCATION -> setLocationText(dataRecord)
-            DataRecord.Type.HEART_BPM -> setHeartRateDataRecord(dataRecord)
+            DataRecord.Type.HEART_BPM -> setHeartRateText(dataRecord)
             else -> Unit
         }
     }
 
     private fun setAccelerometerText(dataRecord: DataRecord) {
-        // ファイル出力
-        val timestamp = dataRecord.timestamp
-        addRecord(timestamp, "acce", 3, dataRecord.data as FloatArray)
-
         val actualTime = System.currentTimeMillis()
-        if (actualTime - lastUpdate > UPDATE_INTERVAL_MS) {
+        if (actualTime - lastUpdate > Companion.UPDATE_INTERVAL_MS) {
             lastUpdate = actualTime
             val arr = dataRecord.data as FloatArray
             val x = arr[0]
@@ -258,13 +217,13 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         textViewAlt.text = "速度：$spd"
     }
 
-    private fun setHeartRateDataRecord(dataRecord: DataRecord) {
+    private fun setHeartRateText(dataRecord: DataRecord) {
         Timber.i("setHeartRateMeasurement: %s", dataRecord)
         textViewBle.text = String.format("%d bpm", dataRecord.data)
     }
 
 
-    fun hasLocationPermissions(context: Context) =
+    private fun hasLocationPermissions(context: Context) =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             EasyPermissions.hasPermissions(
                 context,
