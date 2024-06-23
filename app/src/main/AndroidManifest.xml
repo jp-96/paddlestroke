@@ -20,7 +20,7 @@
         android:theme="@style/Theme.Paddlestroke"
         tools:targetApi="31">
         <service
-            android:name=".service.DataRecordService$DummyDataRecordService"
+            android:name=".service.AndroidDataRecordService"
             android:foregroundServiceType="location" />
         <activity
             android:name=".MainActivity"

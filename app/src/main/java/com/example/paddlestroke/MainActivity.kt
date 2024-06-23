@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.paddlestroke.data.DataRecord
 import com.example.paddlestroke.datasource.ble.hasDevice
 import com.example.paddlestroke.datasource.ble.isEnabled
+import com.example.paddlestroke.service.AndroidDataRecordService
 import com.example.paddlestroke.service.DataRecordService
 import com.example.paddlestroke.service.DataRecordService.Companion.ACTION_START
 import com.example.paddlestroke.service.DataRecordService.Companion.ACTION_START_SESSION
@@ -88,7 +89,8 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     private fun sendCommandToService(action: String) =
-        Intent(applicationContext, DataRecordService.DummyDataRecordService::class.java).also {
+        //Intent(applicationContext, DataRecordService.DummyDataRecordService::class.java).also {
+        Intent(applicationContext, AndroidDataRecordService::class.java).also {
             it.action = action
             applicationContext.startService(it)
         }

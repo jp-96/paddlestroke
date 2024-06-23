@@ -87,7 +87,7 @@ abstract class DataRecordService : LifecycleService() {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    private fun initDataRecordService(){
+    private fun initDataRecordService() {
         isInSession.postValue(false)
         currentState = ServiceState.NONE
     }
@@ -125,7 +125,6 @@ abstract class DataRecordService : LifecycleService() {
         )
             .setContentTitle("In Session ...")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setOngoing(true)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE)
@@ -184,7 +183,9 @@ abstract class DataRecordService : LifecycleService() {
                 Intent(this, MainActivity::class.java),
                 PendingIntent.FLAG_UPDATE_CURRENT
             )
-            notification.setContentIntent(mainActivityPendingIntent)
+            notification
+                .setContentIntent(mainActivityPendingIntent)
+                .setOngoing(true)
 
         }
 
