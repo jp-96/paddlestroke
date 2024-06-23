@@ -7,7 +7,7 @@ import com.example.paddlestroke.datasource.ble.BluetoothHandler.Companion.getIns
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 
-class BluetoothProvider(private val context: Context, private val scope: CoroutineScope) {
+class AndroidBluetoothProvider(private val context: Context, private val scope: CoroutineScope) {
 
     private val bluetoothManager: BluetoothManager =
         context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager

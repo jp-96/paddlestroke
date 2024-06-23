@@ -28,7 +28,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
 
-class AndroidRunningService : LifecycleService() {
+class AndroidDataRecordService : LifecycleService() {
 
 //    companion object {
 //        const val ACTION_START = "ACTION_START"

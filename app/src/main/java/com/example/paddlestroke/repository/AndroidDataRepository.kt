@@ -4,7 +4,7 @@ import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import com.example.paddlestroke.data.DataRecord
-import com.example.paddlestroke.datasource.ble.BluetoothProvider
+import com.example.paddlestroke.datasource.ble.AndroidBluetoothProvider
 import com.example.paddlestroke.datasource.sensor.AndroidLocationClient
 import com.example.paddlestroke.datasource.sensor.AndroidSensorClient
 import com.google.android.gms.location.LocationServices
@@ -27,7 +27,7 @@ class AndroidDataRepository(private val context: Context, private val scope: Cor
     private val providerClient = LocationServices.getFusedLocationProviderClient(context)
     private val locationClient = AndroidLocationClient(context, providerClient)
 
-    private val bleProvider = BluetoothProvider(context, scope)
+    private val bleProvider = AndroidBluetoothProvider(context, scope)
 
     private var accelerometerJob: Job? = null
     private var locationJob: Job? = null
