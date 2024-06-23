@@ -15,15 +15,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import com.example.paddlestroke.data.DataRecord
 import com.example.paddlestroke.datasource.ble.hasDevice
 import com.example.paddlestroke.datasource.ble.isEnabled
-import com.example.paddlestroke.service.RunningService
-import com.example.paddlestroke.service.RunningService.Companion.ACTION_START
-import com.example.paddlestroke.service.RunningService.Companion.ACTION_STOP_IF_NOT_RECORDING
-import com.example.paddlestroke.service.RunningService.Companion.ACTION_START_RECORDING
-import com.example.paddlestroke.service.RunningService.Companion.ACTION_STOP_RECORDING
+import com.example.paddlestroke.service.DataRecordService
+import com.example.paddlestroke.service.DataRecordService.Companion.ACTION_START
+import com.example.paddlestroke.service.DataRecordService.Companion.ACTION_START_SESSION
+import com.example.paddlestroke.service.DataRecordService.Companion.ACTION_STOP_IF_NOT_IN_SESSION
+import com.example.paddlestroke.service.DataRecordService.Companion.ACTION_STOP_SESSION
+import com.example.paddlestroke.service.DataRecordService.Companion.isInSession
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.launchIn
@@ -86,7 +88,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     private fun sendCommandToService(action: String) =
-        Intent(applicationContext, RunningService.DummyRunningService::class.java).also {
+        Intent(applicationContext, DataRecordService.DummyDataRecordService::class.java).also {
             it.action = action
             applicationContext.startService(it)
         }
@@ -96,11 +98,14 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     private fun stopDataRepository() {
-        sendCommandToService(ACTION_STOP_IF_NOT_RECORDING)
+        sendCommandToService(ACTION_STOP_IF_NOT_IN_SESSION)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (Timber.treeCount == 0) {
+            Timber.plant(Timber.DebugTree())
+        }
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -110,13 +115,22 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         }
 
         val buttonStart = findViewById<Button>(R.id.buttonStart)
-        buttonStart.setOnClickListener{
-            sendCommandToService(ACTION_START_RECORDING)
+        buttonStart.setOnClickListener {
+            sendCommandToService(ACTION_START_SESSION)
         }
         val buttonStop = findViewById<Button>(R.id.buttonStop)
-        buttonStop.setOnClickListener{
-            sendCommandToService(ACTION_STOP_RECORDING)
+        buttonStop.setOnClickListener {
+            sendCommandToService(ACTION_STOP_SESSION)
         }
+        isInSession.observe(this, Observer {
+            if (it) {
+                buttonStart.visibility = View.INVISIBLE
+                buttonStop.visibility = View.VISIBLE
+            } else {
+                buttonStart.visibility = View.VISIBLE
+                buttonStop.visibility = View.INVISIBLE
+            }
+        })
 
         textViewX = findViewById<View>(R.id.textViewX) as TextView
         textViewY = findViewById<View>(R.id.textViewY) as TextView
@@ -153,7 +167,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             askToEnableBluetooth()
         }
 
-        repositoryJob = RunningService.dataRecordFlow
+        repositoryJob = DataRecordService.dataRecordFlow
             .onEach { dataRecord ->
                 setDataRecordText(dataRecord)
             }.launchIn(lifecycleScope)
@@ -249,7 +263,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
 
     fun hasLocationPermissions(context: Context) =
-        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             EasyPermissions.hasPermissions(
                 context,
                 Manifest.permission.ACCESS_FINE_LOCATION,
@@ -266,10 +280,10 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     private fun requestPermissions() {
         //if(hasLocationPermissions(requireContext())) {
-        if(hasLocationPermissions(this)) {
+        if (hasLocationPermissions(this)) {
             return
         }
-        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             EasyPermissions.requestPermissions(
                 this,
                 "You need to accept location permissions to use this app.",
@@ -296,7 +310,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     // EasyPermissions.PermissionCallbacks
     override fun onPermissionsDenied(requestCode: Int, perms: MutableList<String>) {
-        if(EasyPermissions.somePermissionPermanentlyDenied(this, perms)) {
+        if (EasyPermissions.somePermissionPermanentlyDenied(this, perms)) {
             AppSettingsDialog.Builder(this).build().show()
         } else {
             requestPermissions()

@@ -378,7 +378,7 @@ internal class BluetoothHandler private constructor(
     //private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     init {
-        Timber.plant(DebugTree())
+//        Timber.plant(DebugTree())
         central = BluetoothCentralManager(context)
 
         central.observeConnectionState { peripheral, state ->

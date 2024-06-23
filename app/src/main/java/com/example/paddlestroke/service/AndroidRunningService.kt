@@ -13,13 +13,13 @@ import com.example.paddlestroke.MainActivity
 import com.example.paddlestroke.R
 import com.example.paddlestroke.repository.AndroidDataRepository
 import com.example.paddlestroke.repository.DataRepository
-import com.example.paddlestroke.service.RunningService.Companion.ACTION_START
-import com.example.paddlestroke.service.RunningService.Companion.ACTION_STOP_IF_NOT_RECORDING
-import com.example.paddlestroke.service.RunningService.Companion.NOTIFICATION_CHANNEL_ID
-import com.example.paddlestroke.service.RunningService.Companion.NOTIFICATION_CHANNEL_NAME
-import com.example.paddlestroke.service.RunningService.Companion.NOTIFICATION_ID
-import com.example.paddlestroke.service.RunningService.Companion.dataRecordFlow
-import com.example.paddlestroke.service.RunningService.Companion.isRunning
+import com.example.paddlestroke.service.DataRecordService.Companion.ACTION_START
+import com.example.paddlestroke.service.DataRecordService.Companion.ACTION_STOP_IF_NOT_IN_SESSION
+import com.example.paddlestroke.service.DataRecordService.Companion.NOTIFICATION_CHANNEL_ID
+import com.example.paddlestroke.service.DataRecordService.Companion.NOTIFICATION_CHANNEL_NAME
+import com.example.paddlestroke.service.DataRecordService.Companion.NOTIFICATION_ID
+import com.example.paddlestroke.service.DataRecordService.Companion.dataRecordFlow
+import com.example.paddlestroke.service.DataRecordService.Companion.isInSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -48,7 +48,7 @@ class AndroidRunningService : LifecycleService() {
 
     @SuppressLint("ObsoleteSdkInt")
     private fun startRunningService() {
-        if (isRunning.value == true) return
+        if (isInSession.value == true) return
 
         val mainActivityPendingIntent = PendingIntent.getActivity(
             this,
@@ -97,7 +97,7 @@ class AndroidRunningService : LifecycleService() {
         super.onCreate()
         Timber.i("onCreate")
 
-        isRunning.postValue(false)
+        isInSession.postValue(false)
         dataRepository = AndroidDataRepository(this, serviceScope)
     }
 
@@ -106,7 +106,7 @@ class AndroidRunningService : LifecycleService() {
             Timber.i("onStartCommand $it")
             when (it.action) {
                 ACTION_START -> startRunningService()
-                ACTION_STOP_IF_NOT_RECORDING -> stopRunningService()
+                ACTION_STOP_IF_NOT_IN_SESSION -> stopRunningService()
             }
         }
         return super.onStartCommand(intent, flags, startId)
