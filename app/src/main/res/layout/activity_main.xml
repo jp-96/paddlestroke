@@ -172,8 +172,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:text="Start/Stop"
+        android:text="Start"
         app:layout_constraintStart_toEndOf="@+id/textView"
         app:layout_constraintTop_toTopOf="@+id/textView" />
+
+    <Button
+        android:id="@+id/buttonStop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="Stop"
+        app:layout_constraintStart_toEndOf="@+id/buttonStart"
+        app:layout_constraintTop_toTopOf="@+id/buttonStart" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

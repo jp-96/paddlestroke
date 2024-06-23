@@ -9,35 +9,39 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.MutableLiveData
 import com.example.paddlestroke.MainActivity
 import com.example.paddlestroke.R
-import com.example.paddlestroke.data.DataRecord
 import com.example.paddlestroke.repository.AndroidDataRepository
 import com.example.paddlestroke.repository.DataRepository
+import com.example.paddlestroke.service.RunningService.Companion.ACTION_START
+import com.example.paddlestroke.service.RunningService.Companion.ACTION_STOP_IF_NOT_RECORDING
+import com.example.paddlestroke.service.RunningService.Companion.NOTIFICATION_CHANNEL_ID
+import com.example.paddlestroke.service.RunningService.Companion.NOTIFICATION_CHANNEL_NAME
+import com.example.paddlestroke.service.RunningService.Companion.NOTIFICATION_ID
+import com.example.paddlestroke.service.RunningService.Companion.dataRecordFlow
+import com.example.paddlestroke.service.RunningService.Companion.isRunning
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
 
 class AndroidRunningService : LifecycleService() {
 
-    companion object {
-        const val ACTION_START = "ACTION_START"
-        const val ACTION_STOP = "ACTION_STOP"
-
-        const val NOTIFICATION_ID = 1
-        const val NOTIFICATION_CHANNEL_ID = "running_channel"
-        const val NOTIFICATION_CHANNEL_NAME = "running"
-
-        val isRunning = MutableLiveData<Boolean>()
-        val dataRecordFlow = MutableSharedFlow<DataRecord>()
-
-    }
+//    companion object {
+//        const val ACTION_START = "ACTION_START"
+//        const val ACTION_STOP = "ACTION_STOP"
+//
+//        const val NOTIFICATION_ID = 1
+//        const val NOTIFICATION_CHANNEL_ID = "running_channel"
+//        const val NOTIFICATION_CHANNEL_NAME = "running"
+//
+//        val isRunning = MutableLiveData<Boolean>()
+//        val dataRecordFlow = MutableSharedFlow<DataRecord>()
+//
+//    }
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     lateinit var dataRepository: DataRepository
@@ -102,7 +106,7 @@ class AndroidRunningService : LifecycleService() {
             Timber.i("onStartCommand $it")
             when (it.action) {
                 ACTION_START -> startRunningService()
-                ACTION_STOP -> stopRunningService()
+                ACTION_STOP_IF_NOT_RECORDING -> stopRunningService()
             }
         }
         return super.onStartCommand(intent, flags, startId)

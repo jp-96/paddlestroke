@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,9 +19,11 @@ import androidx.lifecycle.lifecycleScope
 import com.example.paddlestroke.data.DataRecord
 import com.example.paddlestroke.datasource.ble.hasDevice
 import com.example.paddlestroke.datasource.ble.isEnabled
-import com.example.paddlestroke.service.AndroidRunningService
-import com.example.paddlestroke.service.AndroidRunningService.Companion.ACTION_START
-import com.example.paddlestroke.service.AndroidRunningService.Companion.ACTION_STOP
+import com.example.paddlestroke.service.RunningService
+import com.example.paddlestroke.service.RunningService.Companion.ACTION_START
+import com.example.paddlestroke.service.RunningService.Companion.ACTION_STOP_IF_NOT_RECORDING
+import com.example.paddlestroke.service.RunningService.Companion.ACTION_START_RECORDING
+import com.example.paddlestroke.service.RunningService.Companion.ACTION_STOP_RECORDING
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.launchIn
@@ -83,7 +86,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     private fun sendCommandToService(action: String) =
-        Intent(applicationContext, AndroidRunningService::class.java).also {
+        Intent(applicationContext, RunningService.DummyRunningService::class.java).also {
             it.action = action
             applicationContext.startService(it)
         }
@@ -93,7 +96,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     private fun stopDataRepository() {
-        sendCommandToService(ACTION_STOP)
+        sendCommandToService(ACTION_STOP_IF_NOT_RECORDING)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,6 +107,15 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
+        }
+
+        val buttonStart = findViewById<Button>(R.id.buttonStart)
+        buttonStart.setOnClickListener{
+            sendCommandToService(ACTION_START_RECORDING)
+        }
+        val buttonStop = findViewById<Button>(R.id.buttonStop)
+        buttonStop.setOnClickListener{
+            sendCommandToService(ACTION_STOP_RECORDING)
         }
 
         textViewX = findViewById<View>(R.id.textViewX) as TextView
@@ -141,7 +153,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             askToEnableBluetooth()
         }
 
-        repositoryJob = AndroidRunningService.dataRecordFlow
+        repositoryJob = RunningService.dataRecordFlow
             .onEach { dataRecord ->
                 setDataRecordText(dataRecord)
             }.launchIn(lifecycleScope)
@@ -161,6 +173,9 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
             bufferedWriter?.flush()
             bufferedWriter?.close()
         }
+
+        stopDataRepository()
+
         super.onPause()
     }
 
