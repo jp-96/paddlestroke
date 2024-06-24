@@ -62,39 +62,6 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     private var lastUpdate: Long = 0L
 
-    private var isFirstAskBLE = true
-
-    private val enableBluetoothRequest =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (it.resultCode == RESULT_OK) {
-                // Bluetooth has been enabled
-                startDataRepository()
-            } else {
-                // Bluetooth has not been enabled, try again
-                askToEnableBluetooth()
-            }
-        }
-
-    private fun askToEnableBluetooth() {
-        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-        enableBluetoothRequest.launch(enableBtIntent)
-    }
-
-    private fun sendCommandToService(action: String) =
-        //Intent(applicationContext, DataRecordService.DummyDataRecordService::class.java).also {
-        Intent(applicationContext, AndroidDataRecordService::class.java).also {
-            it.action = action
-            applicationContext.startService(it)
-        }
-
-    private fun startDataRepository() {
-        sendCommandToService(ACTION_START)
-    }
-
-    private fun stopDataRepository() {
-        sendCommandToService(ACTION_STOP_IF_NOT_IN_SESSION)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Timber.treeCount == 0) {
@@ -138,28 +105,29 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
         textViewBle = findViewById<View>(R.id.textViewBle) as TextView
 
-        requestPermissions()
+//        requestPermissions()
     }
 
     override fun onResume() {
         super.onResume()
 
-        lastUpdate = 0
+//        val bluetoothManager: BluetoothManager =
+//            getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+//        if (!bluetoothManager.hasDevice || bluetoothManager.isEnabled || !isFirstAskBLE) {
+//            startDataRepository()
+//        } else {
+//            isFirstAskBLE = false
+//            askToEnableBluetooth()
+//        }
 
-        val bluetoothManager: BluetoothManager =
-            getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        if (!bluetoothManager.hasDevice || bluetoothManager.isEnabled || !isFirstAskBLE) {
-            startDataRepository()
-        } else {
-            isFirstAskBLE = false
-            askToEnableBluetooth()
-        }
+        lastUpdate = 0
 
         repositoryJob = DataRecordService.dataRecordFlow
             .onEach { dataRecord ->
                 setDataRecordText(dataRecord)
             }.launchIn(lifecycleScope)
 
+        startDataRepository()
     }
 
     override fun onPause() {
@@ -172,6 +140,21 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         stopDataRepository()
 
         super.onPause()
+    }
+
+    private fun sendCommandToService(action: String) =
+        //Intent(applicationContext, DataRecordService.DummyDataRecordService::class.java).also {
+        Intent(applicationContext, AndroidDataRecordService::class.java).also {
+            it.action = action
+            applicationContext.startService(it)
+        }
+
+    private fun startDataRepository() {
+        sendCommandToService(ACTION_START)
+    }
+
+    private fun stopDataRepository() {
+        sendCommandToService(ACTION_STOP_IF_NOT_IN_SESSION)
     }
 
     private fun setDataRecordText(dataRecord: DataRecord) {
@@ -222,6 +205,24 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
         textViewBle.text = String.format("%d bpm", dataRecord.data)
     }
 
+
+    private var isFirstAskBLE = true
+
+    private val enableBluetoothRequest =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (it.resultCode == RESULT_OK) {
+                // Bluetooth has been enabled
+                startDataRepository()
+            } else {
+                // Bluetooth has not been enabled, try again
+                askToEnableBluetooth()
+            }
+        }
+
+    private fun askToEnableBluetooth() {
+        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+        enableBluetoothRequest.launch(enableBtIntent)
+    }
 
     private fun hasLocationPermissions(context: Context) =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
