@@ -90,6 +90,11 @@ abstract class DataRecordService : LifecycleService() {
     private fun initDataRecordService() {
         isInSession.postValue(false)
         currentState = ServiceState.NONE
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE)
+                as NotificationManager
+        notificationManager.cancel(NOTIFICATION_ID)
+        stopForeground(STOP_FOREGROUND_REMOVE)
     }
 
     protected abstract fun onStartDataRecordService()
@@ -108,7 +113,7 @@ abstract class DataRecordService : LifecycleService() {
         // callback
         onStopDataRecordService()
 
-        stopSelf()
+        //stopSelf()
 
         // state
         currentState = ServiceState.NONE

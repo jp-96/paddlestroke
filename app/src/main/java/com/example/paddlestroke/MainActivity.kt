@@ -2,7 +2,6 @@ package com.example.paddlestroke
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -18,8 +17,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import com.example.paddlestroke.data.DataRecord
-import com.example.paddlestroke.datasource.ble.hasDevice
-import com.example.paddlestroke.datasource.ble.isEnabled
 import com.example.paddlestroke.service.AndroidDataRecordService
 import com.example.paddlestroke.service.DataRecordService
 import com.example.paddlestroke.service.DataRecordService.Companion.ACTION_START
@@ -35,9 +32,13 @@ import kotlinx.coroutines.runBlocking
 import pub.devrel.easypermissions.AppSettingsDialog
 import pub.devrel.easypermissions.EasyPermissions
 import timber.log.Timber
+import java.io.PrintWriter
+import java.io.StringWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.system.exitProcess
+
 
 class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 

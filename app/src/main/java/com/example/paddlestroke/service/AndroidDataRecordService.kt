@@ -5,14 +5,16 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.example.paddlestroke.MainActivity
 import com.example.paddlestroke.data.SessionDataRecorder
-import com.example.paddlestroke.repository.AndroidDataRepository
+import com.example.paddlestroke.repository.AndroidDataRepository.Companion.getInstance
 import com.example.paddlestroke.repository.DataRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -22,11 +24,11 @@ class AndroidDataRecordService : DataRecordService() {
 
     private val sessionDataRecorder = SessionDataRecorder()
     private lateinit var dataRepository: DataRepository
-    private var serviceScope: CoroutineScope? = null
+    private var serviceJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
-        dataRepository = AndroidDataRepository(this)
+        dataRepository = getInstance()
     }
 
     override fun onDestroy() {
@@ -35,21 +37,24 @@ class AndroidDataRecordService : DataRecordService() {
     }
 
     override fun onStartDataRecordService() {
-        if (serviceScope != null) return
-        serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        dataRepository.getDataRecordFlow()
+        if (serviceJob?.isActive == true) return
+        val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        serviceJob = dataRepository.getDataRecordFlow()
             .onEach { dataRecord ->
                 sessionDataRecorder.log(dataRecord)
                 dataRecordFlow.emit(dataRecord)
             }
-            .launchIn(serviceScope!!)
-        dataRepository.startIn(serviceScope!!)
+            .launchIn(serviceScope)
+        dataRepository.start(this)
     }
 
     override fun onStopDataRecordService() {
-        if (serviceScope == null) return
-        serviceScope?.cancel()
-        serviceScope = null
+        dataRepository.stop()
+
+        runBlocking {
+            serviceJob?.cancelAndJoin()
+        }
+        serviceJob = null
     }
 
     override fun onStartSession(notification: NotificationCompat.Builder) {

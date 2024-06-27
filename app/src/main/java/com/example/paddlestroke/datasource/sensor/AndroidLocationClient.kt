@@ -55,13 +55,13 @@ class AndroidLocationClient(
             .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
             .setWaitForAccurateLocation(true)
             .build()
-        providerClient.requestLocationUpdates(
-            locationRequest,
-            callback,
-            Looper.getMainLooper()
-        ).addOnFailureListener { e ->
-            close(e)
-        }
+        providerClient
+            .requestLocationUpdates(
+                locationRequest,
+                callback,
+                Looper.getMainLooper()
+            )
+            .addOnFailureListener { e -> close(e) }
 
         awaitClose {
             providerClient.removeLocationUpdates(callback)

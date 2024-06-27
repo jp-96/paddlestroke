@@ -1,38 +1,29 @@
 package com.example.paddlestroke.datasource.ble
 
-import android.bluetooth.BluetoothManager
 import android.content.Context
 import com.example.paddlestroke.data.DataRecord
+import com.example.paddlestroke.datasource.ble.BluetoothHandler.Companion.closeInstance
 import com.example.paddlestroke.datasource.ble.BluetoothHandler.Companion.getInstance
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.runBlocking
 
-class AndroidBluetoothProvider(private val context: Context) {
+class AndroidBluetoothProvider() {
 
-    private val bluetoothManager: BluetoothManager =
-        context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-    private lateinit var bluetoothHandler: BluetoothHandler
+    private var bluetoothHandler: BluetoothHandler? = null
 
-    val hasDevice: Boolean
-        get() {
-            return bluetoothManager.hasDevice
-        }
-
-    val isEnabled: Boolean
-        get() {
-            return bluetoothManager.isEnabled
-        }
-
-    fun startIn(scope: CoroutineScope) {
+    fun startIn(context: Context, scope: CoroutineScope) {
+        stop()
         bluetoothHandler = getInstance(context, scope)
     }
 
     fun stop() {
-        bluetoothHandler.central.close()
+        closeInstance()
+        bluetoothHandler = null
     }
 
     fun getHeartRateChannel(): Channel<DataRecord> {
-        return bluetoothHandler.heartRateChannel
+        return bluetoothHandler!!.heartRateChannel
     }
 
 }

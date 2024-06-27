@@ -21,8 +21,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.RENDEZVOUS
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import timber.log.Timber
-import timber.log.Timber.DebugTree
 import java.nio.ByteOrder
 import java.util.Calendar
 import java.util.TimeZone
@@ -365,11 +365,30 @@ internal class BluetoothHandler private constructor(
         @Synchronized
         fun getInstance(context: Context, scope: CoroutineScope): BluetoothHandler {
             if (instance == null) {
-//                instance = BluetoothHandler(context.applicationContext, scope)
+                //instance = BluetoothHandler(context.applicationContext, scope)
                 instance = BluetoothHandler(context, scope)
             }
             return requireNotNull(instance)
         }
+
+        fun closeInstance() {
+            instance?.let { bluetoothHandler ->
+                bluetoothHandler.central.let { central ->
+                    runBlocking {
+                        central.observeConnectionState { peripheral, state -> Unit }
+                        central.observeAdapterState { state -> Unit }
+
+                        val connectedPeripheral = central.getConnectedPeripherals()
+                        connectedPeripheral.forEach { central.cancelConnection(it) }
+
+                        central.stopScan()
+                        central.close()
+                    }
+                }
+            }
+            instance = null
+        }
+
     }
 
     @JvmField
