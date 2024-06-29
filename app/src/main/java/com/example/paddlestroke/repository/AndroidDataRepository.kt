@@ -39,7 +39,6 @@ class AndroidDataRepository :
 
     private var accelerometerJob: Job? = null
     private var locationJob: Job? = null
-    private var bleProvider: AndroidBluetoothProvider? = null
     private var heartRateJob: Job? = null
 
     override fun start(context: Context) {
@@ -72,16 +71,20 @@ class AndroidDataRepository :
 
         // BLE: HeartRate
         if (heartRateJob?.isActive != true) {
-            bleProvider = AndroidBluetoothProvider()
+            val bleProvider = AndroidBluetoothProvider()
             val scopeSvIO = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-            bleProvider!!.startIn(context, scopeSvIO)
-            heartRateJob = bleProvider!!.getHeartRateChannel().receiveAsFlow()
-                .catch { e -> e.printStackTrace() }
-                .onEach { dataRecord ->
-                    dataRecordFlow.emit(dataRecord)
-                }
-                .onCompletion { e -> Timber.d("HearRate Done: $e") }
-                .launchIn(scopeSvIO)
+            if (bleProvider.startIn(context, scopeSvIO)) {
+                heartRateJob = bleProvider.getHeartRateChannel().receiveAsFlow()
+                    .catch { e -> e.printStackTrace() }
+                    .onEach { dataRecord ->
+                        dataRecordFlow.emit(dataRecord)
+                    }
+                    .onCompletion { e ->
+                        Timber.d("HearRate Done: $e")
+                        bleProvider.stop()
+                    }
+                    .launchIn(scopeSvIO)
+            }
         }
 
     }
@@ -96,8 +99,8 @@ class AndroidDataRepository :
         locationJob = null
         heartRateJob = null
 
-        bleProvider!!.stop()
-        bleProvider = null
+//        bleProvider!!.stop()
+//        bleProvider = null
     }
 
     override fun getDataRecordFlow(): Flow<DataRecord> {

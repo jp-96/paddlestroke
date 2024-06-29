@@ -12,9 +12,10 @@ class AndroidBluetoothProvider() {
 
     private var bluetoothHandler: BluetoothHandler? = null
 
-    fun startIn(context: Context, scope: CoroutineScope) {
+    fun startIn(context: Context, scope: CoroutineScope): Boolean {
         stop()
         bluetoothHandler = getInstance(context, scope)
+        return bluetoothHandler!!.central.isBluetoothEnabled
     }
 
     fun stop() {

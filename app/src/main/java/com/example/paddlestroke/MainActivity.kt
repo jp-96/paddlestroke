@@ -183,18 +183,19 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     private fun setLocationText(dataRecord: DataRecord) {
-        val time: String = SimpleDateFormat(
+        // data: Array 0-"time", 1- "lat" 2- "long" 3- "alt" 4- "speed" 5- "bearing" 6- "accuracy"
+        val arr = dataRecord.data as Array<*>
+        val time = arr[0] as Long
+        val lat = arr[1]
+        val lon = arr[2]
+        val alt = arr[3]
+        val spd = arr[4]
+        val bea = arr[5]
+        val acc = arr[6]
+        val datetime = SimpleDateFormat(
             "yyyy/MM/dd HH:mm:ss", Locale.getDefault()
-        ).format(Date(dataRecord.timestamp))
-        // data: DoubleArray 0- "lat" 1- "long" 2- "alt" 3- "speed" 4- "bearing" 5- "accuracy"
-        val arr = dataRecord.data as DoubleArray
-        val lat = arr[0]
-        val lon = arr[1]
-        val alt = arr[2]
-        val spd = arr[3]
-        val bea = arr[4]
-        val acc = arr[5]
-        textViewTime.text = "測定時刻：$time"
+        ).format(Date(time))
+        textViewTime.text = "測定時刻：$datetime"
         textViewLon.text = "経度：$lon"
         textViewLat.text = "緯度：$lat"
         textViewAcc.text = "精度：$acc"
@@ -203,7 +204,7 @@ class MainActivity : AppCompatActivity(), EasyPermissions.PermissionCallbacks {
 
     private fun setHeartRateText(dataRecord: DataRecord) {
         Timber.i("setHeartRateMeasurement: %s", dataRecord)
-        textViewBle.text = String.format("%d bpm", dataRecord.data)
+        textViewBle.text = String.format(Locale.US, "%d bpm", dataRecord.data)
     }
 
 

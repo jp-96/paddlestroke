@@ -23,15 +23,16 @@ class AndroidLocationClient(
             //val timestamp = elapsedRealtimeNanos()
             return DataRecord(
                 DataRecord.Type.LOCATION,
-                location.time /*timestamp*/,
-                doubleArrayOf(
-                    // arrayOf("lat", "long", "alt", "speed", "bearing", "accuracy")
-                    location.latitude,
-                    location.longitude,
-                    location.altitude,
-                    location.speed.toDouble(),
-                    location.bearing.toDouble(),
-                    location.accuracy.toDouble(),
+                location.elapsedRealtimeNanos /*timestamp*/,
+                arrayOf(
+                    // arrayOf("time", "lat", "long", "alt", "speed", "bearing", "accuracy")
+                    location.time,      // long, the Unix epoch time
+                    location.latitude,  // double
+                    location.longitude, // double
+                    location.altitude,  // double
+                    location.speed,     // float
+                    location.bearing,   // float
+                    location.accuracy,  // float
                 )
             )
         }

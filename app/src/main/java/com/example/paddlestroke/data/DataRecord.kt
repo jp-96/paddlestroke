@@ -1,29 +1,37 @@
 package com.example.paddlestroke.data
 
+import com.example.paddlestroke.data.DataRecordSerializer.BOOLEAN
+import com.example.paddlestroke.data.DataRecordSerializer.DISTANCE
+import com.example.paddlestroke.data.DataRecordSerializer.DOUBLE
+import com.example.paddlestroke.data.DataRecordSerializer.DOUBLE_ARR
+import com.example.paddlestroke.data.DataRecordSerializer.FLOAT
+import com.example.paddlestroke.data.DataRecordSerializer.FLOAT_ARR
+import com.example.paddlestroke.data.DataRecordSerializer.INT
+import com.example.paddlestroke.data.DataRecordSerializer.LONG
+import com.example.paddlestroke.data.DataRecordSerializer.PARAMETER
+import java.util.Locale
 
-class DataRecord(val type: Type, val timestamp: Long, val data: Any) {
-
+class DataRecord(val type: Type, val timestamp: Long, val data: Any?) {
     enum class Type(
-        val isReplayable: Boolean = false,
-        val isViewData: Boolean = true,
+        val isReplayableEvent: Boolean = false,
+        val isBusEvent: Boolean = true,
         val dataExporter: DataExporter? = null,
         val dataParser: DataRecordSerializer? = null
     ) {
         UUID,
         RECORDING_START,
         RECORDING_COUNTDOWN(false, object : DataRecordSerializer() {
-            override fun doSerialize(data: Any?): String? {
-                val arr = nullableAnyArray(data)!!
-                /* tag, countdown */return String.format("%s,%d", *arr)
+            override fun doSerialize(data: Any?): String {
+                val vals = data as Array<*>?
+                /* tag, countdown */
+                return String.format(Locale.US, "%s,%d", *vals!!)
             }
 
-            override fun doParse(s: String): Any? {
+            public override fun doParse(s: String): Any? {
                 val tokens = s.split(",".toRegex()).dropLastWhile { it.isEmpty() }
                     .toTypedArray()
-                /* tag, countdown */return arrayOf<Any>(
-                    tokens[0],
-                    tokens[1]
-                )
+                /* tag, countdown */
+                return arrayOf<Any>(tokens[0], tokens[1])
             }
         }),
         STROKE_DROP_BELOW_ZERO,
@@ -31,114 +39,123 @@ class DataRecord(val type: Type, val timestamp: Long, val data: Any) {
         STROKE_POWER_START,
         ROWING_STOP(false, object : DataRecordSerializer() {
             override fun doSerialize(data: Any?): String? {
-                val arr = nullableAnyArray(data)!!
-                /* stopTimestamp, distance, splitTime, travelTime, strokeCount */return String.format(
-                    "%d,%f,%d,%d,%d",
-                    *arr
-                )
+                val vals = data as Array<*>?
+                /* stopTimestamp, distance, splitTime, travelTime, strokeCount */
+                return String.format(Locale.US, "%d,%f,%d,%d,%d", *vals!!)
             }
 
-            override fun doParse(s: String): Any {
+            public override fun doParse(s: String): Any? {
                 val tokens = s.split(",".toRegex()).dropLastWhile { it.isEmpty() }
                     .toTypedArray()
-                /* stopTimestamp, distance, splitTime, travelTime, strokeCount */return arrayOf<Any>(
-                    tokens[0], tokens[1], tokens[2], tokens[3], tokens[4]
+                /* stopTimestamp, distance, splitTime, travelTime, strokeCount */
+                return arrayOf<Any>(
+                    tokens[0],
+                    tokens[1], tokens[2], tokens[3], tokens[4]
                 )
             }
         }),
         ROWING_START_TRIGGERED,
-        ROWING_START(false, DataRecordSerializer.LONG()),
-        ROWING_COUNT(false, DataRecordSerializer.INT()),
-
-        //        PARAMETER_CHANGE(false, PARAMETER()),
-//        SESSION_PARAMETER(true, PARAMETER()),
+        ROWING_START(false, LONG()),
+        ROWING_COUNT(false, INT()),
+        PARAMETER_CHANGE(false, PARAMETER()),
+        SESSION_PARAMETER(true, PARAMETER()),
         STROKE_POWER_END(false, true, object : DataExporter {
             override val columnNames: Array<String>
-                get() = arrayOf("power")
+                get() = arrayOf<String>("power")
 
-            override fun exportData(data: Any?): Array<Any>? {
-                return if (data != null) {
-                    arrayOf(data)
-                } else {
-                    null
-                }
+            override fun exportData(data: Any?): Array<Any> {
+                return arrayOf(data!!)
             }
-        }, DataRecordSerializer.FLOAT()),
+        }, FLOAT()),
         STROKE_RATE(false, true, object : DataExporter {
             override val columnNames: Array<String>
-                get() = arrayOf("stroke_rate")
+                get() = arrayOf<String>("stroke_rate")
 
-            override fun exportData(data: Any?): Array<Any>? {
-                return if (data != null) {
-                    arrayOf(data)
-                } else {
-                    null
-                }
+            override fun exportData(data: Any?): Array<Any> {
+                return arrayOf(data!!)
             }
-        }, DataRecordSerializer.INT()),
+        }, INT()),
         STROKE_DECELERATION_TRESHOLD,
         STROKE_ACCELERATION_TRESHOLD,
-        STROKE_ROLL(false, DataRecordSerializer.FLOAT_ARR()),
-        RECOVERY_ROLL(false, DataRecordSerializer.FLOAT_ARR()),
-
-        /**
-         * data: FloatArray 0-x, 1-y, 2-z
-         */
+        STROKE_ROLL(false, FLOAT_ARR()),
+        RECOVERY_ROLL(false, FLOAT_ARR()),
         ACCEL(true, false, object : DataExporter {
             override val columnNames: Array<String>
-                get() = arrayOf("x", "y", "z")
+                get() = arrayOf<String>("x", "y", "z")
 
-            override fun exportData(data: Any?): Array<Any> {
-                val arr = data as FloatArray
-                return arrayOf(arr[0], arr[1], arr[2])
+            override fun exportData(data: Any?): Array<Any>? {
+                val af = data as FloatArray
+
+                return arrayOf(af[0], af[1], af[2])
             }
-        }, DataRecordSerializer.FLOAT_ARR()),
+        }, FLOAT_ARR()),
         ORIENT(true, false, object : DataExporter {
             override val columnNames: Array<String>
-                get() = arrayOf("azimuth", "pitch", "roll")
-
-            override fun exportData(data: Any?): Array<Any>? {
-                val arr = data as FloatArray
-                return arrayOf(arr[0], arr[1], arr[2])
-            }
-        }, DataRecordSerializer.FLOAT_ARR()),
-
-        /**
-         * data: DoubleArray
-         *  0- "lat"
-         *  1- "long"
-         *  2- "alt"
-         *  3- "speed"
-         *  4- "bearing"
-         *  5- "accuracy"
-         */
-        LOCATION(true, false, object : DataExporter {
-            override val columnNames: Array<String>
-                get() = arrayOf("lat", "long", "alt", "speed", "bearing", "accuracy")
+                get() = arrayOf<String>("azimuth", "pitch", "roll")
 
             override fun exportData(data: Any?): Array<Any> {
-                val arr = data as DoubleArray
+                val af = data as FloatArray
+
+                return arrayOf(af[0], af[1], af[2])
+            }
+        }, FLOAT_ARR()),
+        LOCATION(true, false, object : DataExporter {
+            // 0-time (long),
+            // 1-lat (double), 2-long (double), 3-alt (double)
+            // 4-speed (float), 5-bearing (float), 6-accuracy (float)
+            override val columnNames: Array<String>
+                get() = arrayOf<String>(
+                    "time", "lat", "long", "alt", "speed", "bearing", "accuracy"
+                )
+
+            override fun exportData(data: Any?): Array<Any> {
+                val a = data as Array<*>
+
                 return arrayOf(
-                    arr[0],
-                    arr[1], arr[2], arr[3], arr[4], arr[5]
+                    a[0]!!, a[1]!!, a[2]!!, a[3]!!, a[4]!!, a[5]!!, a[6]!!
                 )
             }
-        }, DataRecordSerializer.DOUBLE_ARR()),
-        WAY(false, true, object : DataExporter {
+        }, object : DataRecordSerializer() {
+            override fun doSerialize(data: Any?): String {
+                val vals = data as Array<*>?
+                return String.format(Locale.US, "%d,%f,%f,%f,%f,%f,%f", *vals!!)
+            }
+
+            public override fun doParse(s: String): Any {
+                val tokens = s.split(",".toRegex()).dropLastWhile { it.isEmpty() }
+                    .toTypedArray()
+                return arrayOf<Any>(tokens[0], tokens[1], tokens[2], tokens[3], tokens[4], tokens[5], tokens[6])
+            }
+        }),
+        GPS(true, false, object : DataExporter {
             override val columnNames: Array<String>
-                get() = arrayOf("distance", "speed", "accuracy")
+                get() = arrayOf<String>("lat", "long", "alt", "speed", "bearing", "accuracy")
 
             override fun exportData(data: Any?): Array<Any>? {
-                val arr = data as DoubleArray
-                return arrayOf(arr[0], arr[1], arr[2])
+                val ad = data as DoubleArray
+
+                return arrayOf(
+                    ad[0],
+                    ad[1], ad[2], ad[3], ad[4], ad[5]
+                )
             }
-        }, DataRecordSerializer.DOUBLE_ARR()),
-        ACCUM_DISTANCE(true, DataRecordSerializer.DOUBLE()),
-        FREEZE_TILT(true, DataRecordSerializer.BOOLEAN()),
-        HEART_BPM(true, DataRecordSerializer.INT()),
+        }, DOUBLE_ARR()),
+        WAY(false, true, object : DataExporter {
+            override val columnNames: Array<String>
+                get() = arrayOf<String>("distance", "speed", "accuracy")
+
+            override fun exportData(data: Any?): Array<Any> {
+                val ad = data as DoubleArray
+
+                return arrayOf(ad[0], ad[1], ad[2])
+            }
+        }, DOUBLE_ARR()),
+        ACCUM_DISTANCE(true, DOUBLE()),
+        FREEZE_TILT(true, BOOLEAN()),
+        HEART_BPM(true, INT()),
         IMMEDIATE_DISTANCE_REQUESTED,
-        BOOKMARKED_DISTANCE(false, DataRecordSerializer.DISTANCE()),
-        ROWING_START_DISTANCE(false, DataRecordSerializer.DISTANCE()),
+        BOOKMARKED_DISTANCE(false, DISTANCE()),
+        ROWING_START_DISTANCE(false, DISTANCE()),
         CRASH_STACK,
         INPUT_START,
         INPUT_STOP,
@@ -146,52 +163,72 @@ class DataRecord(val type: Type, val timestamp: Long, val data: Any) {
         REPLAY_SKIPPED,
         REPLAY_PAUSED,
         REPLAY_PLAYING,
-        LOGFILE_VERSION(false, DataRecordSerializer.INT());
+        LOGFILE_VERSION(false, INT());
 
-        val isParsableEvent: Boolean
-        val isExportableEvent: Boolean
+//        private class DistanceEventSerializer : DataRecordSerializer() {
+//            override fun doSerialize(data: Any?): String {
+//                val vals = data as Array<*>?
+//                /* travelTime, travelDistance */
+//                return String.format(Locale.US, "%d,%f", *vals!!)
+//            }
+//
+//            public override fun doParse(s: String): Any {
+//                val tokens = s.split(",".toRegex()).dropLastWhile { it.isEmpty() }
+//                    .toTypedArray()
+//                return arrayOf<Any>(tokens[0], tokens[1])
+//            }
+//        }
 
-        constructor(isReplayable: Boolean, dataParser: DataRecordSerializer) : this(
-            isReplayable,
+//        interface DataExporter {
+//            val columnNames: Array<String?>?
+//
+//            fun exportData(data: Any?): Array<Any>?
+//        }
+
+        val isParsableEvent: Boolean = dataParser != null
+
+        val isExportableEvent: Boolean = dataExporter != null
+
+        constructor(isReplayableEvent: Boolean, dataParser: DataRecordSerializer) : this(
+            isReplayableEvent,
             true,
             null,
             dataParser
         )
-
-        init {
-            isExportableEvent = dataExporter != null
-            isParsableEvent = dataParser != null
-        }
     }
 
     override fun toString(): String {
-        val str = dataToString()
-        return "$type $timestamp $str"
+        val sdata = dataToString()
+
+        return "$type $timestamp $sdata"
     }
 
     fun dataToString(): String {
-        return if (type.dataParser != null) {
+        val sdata = if (type.dataParser != null) {
             type.dataParser.serialize(data)
         } else {
             data.toString()
         }
+        return sdata
     }
 
     fun exportData(): Array<Any>? {
-        return if (type.isExportableEvent) {
-            type.dataExporter!!.exportData(data)
-        } else null
+        if (type.isExportableEvent) {
+            return type.dataExporter!!.exportData(data)
+        }
+
+        return null
     }
 
     companion object {
-        fun create(type: Type, timestamp: Long, data: Any): DataRecord {
+        fun create(type: Type, timestamp: Long, data: Any?): DataRecord {
             return DataRecord(type, timestamp, data)
         }
 
-        fun create(type: Type, timestamp: Long, str: String): DataRecord {
-            return if (type.dataParser != null) {
-                val data = type.dataParser.parse(str)!!
-                create(type, timestamp, data)
+        fun create(type: Type, timestamp: Long, str: String?): DataRecord {
+            if (type.dataParser != null) {
+                val data = type.dataParser.parse(str!!)
+                return create(type, timestamp, data)
             } else {
                 throw UnsupportedOperationException(
                     String.format(

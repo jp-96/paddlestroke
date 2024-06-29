@@ -1,5 +1,7 @@
 package com.example.paddlestroke.data
 
+import java.util.Locale
+
 
 abstract class DataRecordSerializer {
 
@@ -107,21 +109,25 @@ abstract class DataRecordSerializer {
 
     class DISTANCE : DataRecordSerializer() {
         override fun doSerialize(data: Any?): String {
-            val arr = DataRecord.nullableAnyArray(data)!!
-            /* travelTime, travelDistance */return String.format("%d,%f", *arr)
+            val vals = data as Array<*>?
+            /* travelTime, travelDistance */
+            return String.format(Locale.US, "%d,%f", *vals!!)
         }
 
-        override fun doParse(s: String): Any {
+        public override fun doParse(s: String): Any {
             val tokens = s.split(",".toRegex()).dropLastWhile { it.isEmpty() }
                 .toTypedArray()
             return arrayOf<Any>(tokens[0], tokens[1])
         }
     }
 
-//    class PARAMETER : DataRecordSerializer() {
-//        override fun doParse(s: String?): Any {
+    class PARAMETER : DataRecordSerializer() {
+        //        override fun doParse(s: String?): Any {
 //            return ParameterBusEventData(s)
 //        }
-//    }
+        override fun doParse(s: String): Any {
+            return s
+        }
+    }
 
 }
